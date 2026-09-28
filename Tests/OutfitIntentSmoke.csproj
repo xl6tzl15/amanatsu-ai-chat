@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="ExpressionPresetsSmoke.cs" />
+    <Compile Include="..\Sequence\OutfitIntent.cs" Link="OutfitIntent.cs" />
+    <Compile Include="..\Sequence\OutfitPresets.cs" Link="OutfitPresets.cs" />
+  </ItemGroup>
+</Project>

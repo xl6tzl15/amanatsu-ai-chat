@@ -1,0 +1,33 @@
+# Build output and packages
+bin/
+obj/
+Tests/bin/
+Tests/obj/
+dist/
+staged-*/
+backup/
+__pycache__/
+
+# Local runtime data (may contain conversation text, tokens or API keys)
+bridge.local.json
+bridge-logs/
+*.log
+*.err
+
+# Local test reports and screenshots (may contain private text or game imagery)
+*.png
+/*.json
+
+# In-game diagnostics scripts for the maintainer's environment (not published)
+test_face_parts.py
+test_live_game_nemo.py
+test_model.py
+test_model_connection.py
+test_outfit_model.py
+test_outfit_presets_runtime.py
+test_outfit_runtime.py
+test_release_runtime.py
+test_runtime.py
+test_sequence_face_parts.py
+test_stage_integration.py
+start-bridge.ps1

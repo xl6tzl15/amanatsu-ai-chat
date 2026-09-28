@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="Program.cs" />
+    <Compile Include="..\Localization.cs" Link="Localization.cs" />
+    <Compile Include="..\Config\CharacterConfig.cs" Link="CharacterConfig.cs" />
+    <Compile Include="..\Config\ExpressionPresetRules.cs" Link="ExpressionPresetRules.cs" />
+    <Compile Include="..\Config\GlobalExpressionPresets.cs" Link="GlobalExpressionPresets.cs" />
+    <Compile Include="..\GameAdapter\ExpressionCatalog.cs" Link="ExpressionCatalog.cs" />
+    <Compile Include="..\GameAdapter\MotionCatalog.cs" Link="MotionCatalog.cs" />
+  </ItemGroup>
+</Project>

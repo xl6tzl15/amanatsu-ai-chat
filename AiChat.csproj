@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>Amanatsu.AiChat</AssemblyName>
+    <Version>0.7.0</Version>
+    <AssemblyVersion>0.7.0.0</AssemblyVersion>
+    <FileVersion>0.7.0.0</FileVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="Tests/**/*.cs" />
+    <Reference Include="Unity.RenderPipelines.Universal.Runtime"><HintPath>../../BepInEx/interop-AmanatsuLocation/interop/Unity.RenderPipelines.Universal.Runtime.dll</HintPath></Reference>
+    <Reference Include="Unity.RenderPipelines.Core.Runtime"><HintPath>../../BepInEx/interop-AmanatsuLocation/interop/Unity.RenderPipelines.Core.Runtime.dll</HintPath></Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="BepInEx.Core"><HintPath>../../BepInEx/core/BepInEx.Core.dll</HintPath></Reference>
+    <Reference Include="BepInEx.Unity.IL2CPP"><HintPath>../../BepInEx/core/BepInEx.Unity.IL2CPP.dll</HintPath></Reference>
+    <Reference Include="Il2CppInterop.Runtime"><HintPath>../../BepInEx/core/Il2CppInterop.Runtime.dll</HintPath></Reference>
+    <Reference Include="Il2Cppmscorlib"><HintPath>../../BepInEx/interop-AmanatsuLocation/interop/Il2Cppmscorlib.dll</HintPath></Reference>
+    <Reference Include="Assembly-CSharp"><HintPath>../../BepInEx/interop-AmanatsuLocation/interop/Assembly-CSharp.dll</HintPath></Reference>
+    <Reference Include="ILGLib"><HintPath>../../BepInEx/interop-AmanatsuLocation/interop/ILGLib.dll</HintPath></Reference>
+    <Reference Include="UniTask"><HintPath>../../BepInEx/interop-AmanatsuLocation/interop/UniTask.dll</HintPath></Reference>
+    <Reference Include="ObservableCollections"><HintPath>../../BepInEx/interop-AmanatsuLocation/interop/ObservableCollections.dll</HintPath></Reference>
+    <Reference Include="UnityEngine.CoreModule"><HintPath>../../BepInEx/interop-AmanatsuLocation/interop/UnityEngine.CoreModule.dll</HintPath></Reference>
+    <Reference Include="UnityEngine.ScreenCaptureModule"><HintPath>../../BepInEx/interop-AmanatsuLocation/interop/UnityEngine.ScreenCaptureModule.dll</HintPath></Reference>
+    <Reference Include="UnityEngine.ImageConversionModule"><HintPath>../../BepInEx/interop-AmanatsuLocation/interop/UnityEngine.ImageConversionModule.dll</HintPath></Reference>
+    <Reference Include="UnityEngine.PhysicsModule"><HintPath>../../BepInEx/interop-AmanatsuLocation/interop/UnityEngine.PhysicsModule.dll</HintPath></Reference>
+    <Reference Include="UnityEngine.IMGUIModule"><HintPath>../../BepInEx/interop-AmanatsuLocation/interop/UnityEngine.IMGUIModule.dll</HintPath></Reference>
+    <Reference Include="UnityEngine.InputLegacyModule"><HintPath>../../BepInEx/interop-AmanatsuLocation/interop/UnityEngine.InputLegacyModule.dll</HintPath></Reference>
+    <Reference Include="UnityEngine.AnimationModule"><HintPath>../../BepInEx/interop-AmanatsuLocation/interop/UnityEngine.AnimationModule.dll</HintPath></Reference>
+    <Reference Include="UnityEngine.UI"><HintPath>../../BepInEx/interop-AmanatsuLocation/interop/UnityEngine.UI.dll</HintPath></Reference>
+    <Reference Include="UnityEngine.UIModule"><HintPath>../../BepInEx/interop-AmanatsuLocation/interop/UnityEngine.UIModule.dll</HintPath></Reference>
+    <Reference Include="UnityEngine.TextRenderingModule"><HintPath>../../BepInEx/interop-AmanatsuLocation/interop/UnityEngine.TextRenderingModule.dll</HintPath></Reference>
+    <Reference Include="UnityEngine.TextCoreFontEngineModule"><HintPath>../../BepInEx/interop-AmanatsuLocation/interop/UnityEngine.TextCoreFontEngineModule.dll</HintPath></Reference>
+    <Reference Include="Unity.TextMeshPro"><HintPath>../../BepInEx/interop-AmanatsuLocation/interop/Unity.TextMeshPro.dll</HintPath></Reference>
+  </ItemGroup>
+</Project>
