@@ -1,6 +1,6 @@
 # Amanatsu AI Chat — AI / developer README
 
-Version: 0.7.0. This file is for coding agents, maintainers, and automated reviewers. The Japanese end-user manual is `release/README-JA.md` in the source tree and `README-JA.md` in the distribution ZIP. Do not present this file as the user installation guide.
+Version: 0.7.1. This file is for coding agents, maintainers, and automated reviewers. The Japanese end-user manual is `release/README-JA.md` in the source tree and `README-JA.md` in the distribution ZIP. Do not present this file as the user installation guide.
 
 ## Scope and invariants
 
@@ -43,7 +43,7 @@ The distributed ZIP contains a copy of this document as `README-AI.md` and the u
 
 ## Runtime flow
 
-1. `Plugin.Load()` binds BepInEx config, creates the behaviour, and leaves `OpenOnStartup=false` by default. The title and panel show `Amanatsu AI Chat v0.7.0`.
+1. `Plugin.Load()` binds BepInEx config, creates the behaviour, and leaves `OpenOnStartup=false` by default. The title and panel show `Amanatsu AI Chat v0.7.1`.
 2. The title button or F10 starts dedicated mode. When no card path is configured, a native PNG picker opens; cancel leaves the title unchanged.
 3. `DedicatedCharacterStage` loads a native ADV core and creates a displayed character. The normal title canvas is hidden only while dedicated mode is active. The UI and native dialogue window are distinct layers.
 4. On stage open and on card change, the LLM generates the opening line from a hidden instruction (not stored in history; a player message cancels it). An input turn goes to `LlmClient` → loopback `bridge.py` → Ollama or OpenAI-compatible upstream, with the current outfit (per-part state and garment name), available outfit actions, expressions, motions and poses. The bridge validates the returned sequence; native text and allowed expression/motion/pose/outfit actions are then applied.
@@ -108,7 +108,7 @@ python .\ModSource\AiChat\test_catalog.py
 
 The repository ships only tests that run without the game: `test_bridge.py`, `test_restart_bridge.py`, `test_catalog.py` (needs the game's asset bundles and UnityPy) and the C# smoke tests in `Tests/` (build the two projects separately; they share the folder). Game-integration checks use `[Testing] DiagnosticsEnabled=true` and the file-based commands in `DiagnosticsFile.cs`/`Plugin.ExecuteTestCommand`; they are maintainer tools and are not published. Never drive a user's card in such checks without permission, and disable diagnostics afterwards.
 
-0.7.0 is the first public release. Beyond the features above it sets the official `gemma4:e4b` as the default model (uncensored models are only recommended in the manuals) and adds an Advanced panel in the connection settings for `[Bridge] MaxReplyTokens`, `ContextTokens` (0 = provider default: Ollama 512/4096, OpenAI-compatible 512/16384) and `HistoryMessages` (default 30). They are mirrored to `bridge.json` as `max_reply_tokens`, `context_tokens`, `history_messages`, override hand-written `options.num_ctx`/`num_predict`, and set OpenAI `max_tokens`; the game keeps max(60, HistoryMessages) messages. The model picker uses the typed API key, pages long lists and hides non-chat models; the bridge learns per model when an OpenAI-style API rejects `max_tokens` (switching to `max_completion_tokens`, at least 4096) or `temperature`. Verified in the game: Japanese and English editions with a local Ollama model, and Japanese chat plus a clothing request with GPT-6 luna over the OpenAI API. Every card/outfit/resolution/other-Mod combination remains untested.
+0.7.1 adds deleting expression presets from the panel (second press within 10 seconds; the last preset cannot be deleted), a `default` preset (all zero, auto openness) and detailed expression editing docs; the demo falls back to any preset when `smile` was deleted. 0.7.0 is the first public release. Beyond the features above it sets the official `gemma4:e4b` as the default model (uncensored models are only recommended in the manuals) and adds an Advanced panel in the connection settings for `[Bridge] MaxReplyTokens`, `ContextTokens` (0 = provider default: Ollama 512/4096, OpenAI-compatible 512/16384) and `HistoryMessages` (default 30). They are mirrored to `bridge.json` as `max_reply_tokens`, `context_tokens`, `history_messages`, override hand-written `options.num_ctx`/`num_predict`, and set OpenAI `max_tokens`; the game keeps max(60, HistoryMessages) messages. The model picker uses the typed API key, pages long lists and hides non-chat models; the bridge learns per model when an OpenAI-style API rejects `max_tokens` (switching to `max_completion_tokens`, at least 4096) or `temperature`. Verified in the game: Japanese and English editions with a local Ollama model, and Japanese chat plus a clothing request with GPT-6 luna over the OpenAI API. Every card/outfit/resolution/other-Mod combination remains untested.
 
 ## Logs and handoff
 

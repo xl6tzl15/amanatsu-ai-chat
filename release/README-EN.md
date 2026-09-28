@@ -1,6 +1,6 @@
 # Amanatsu AI Chat — User Manual (English edition)
 
-For Amanatsu AI Chat 0.7.0. This is an unofficial mod for *Amanatsu Location* (甘夏ろけーしょん). The normal game still starts from the title screen as usual; the chat screen opens from the "Amanatsu AI Chat v0.7.0" button on the title screen.
+For Amanatsu AI Chat 0.7.1. This is an unofficial mod for *Amanatsu Location* (甘夏ろけーしょん). The normal game still starts from the title screen as usual; the chat screen opens from the "Amanatsu AI Chat v0.7.1" button on the title screen.
 
 This file is for players. Implementation, testing and AI-agent notes are in the accompanying `README-AI.md`.
 
@@ -34,20 +34,20 @@ Example model download sizes. A model larger than your GPU memory runs partly on
 The examples below assume the game is at `C:\ILLGAMES\AmanatsuLocation`. Replace the path if yours is different.
 
 1. Close the game. A running game locks the DLL.
-2. Extract the ZIP and open the `AmanatsuAiChat-EN-0.7.0` folder.
+2. Extract the ZIP and open the `AmanatsuAiChat-EN-0.7.1` folder.
 3. Open PowerShell in that folder and run `python -m pip install -r .\BepInEx\plugins\AmanatsuAiChat\requirements.txt`.
 4. In the same place, run `./install.ps1 -GameRoot 'C:\ILLGAMES\AmanatsuLocation'`.
    - If an earlier version is in a folder under `BepInEx/plugins` (for example `plugins/SELF`), that copy is updated. Otherwise the mod goes into `BepInEx/plugins`.
    - Replaced files are backed up to `BepInEx/config/amanatsu.ai-chat/backups` in the game folder. Settings, cards and saves are not overwritten.
    - If `Amanatsu.AiChat.dll` exists in more than one place, it would load twice, so the installer stops and lists the locations. Keep only one and run it again.
 5. If you use Ollama, start it and download a model, for the default model: `ollama pull gemma4:e4b`. Models are large, so check your free space and allow time.
-6. Start the game. If "Amanatsu AI Chat v0.7.0" appears on the title screen, the mod is loaded.
+6. Start the game. If "Amanatsu AI Chat v0.7.1" appears on the title screen, the mod is loaded.
 
 If PowerShell refuses to run `install.ps1` because of the execution policy, read the error and allow it temporarily for trusted files only. You do not need to lower your security settings permanently.
 
 ## 3. Your first conversation
 
-1. Click "Amanatsu AI Chat v0.7.0" on the title screen. The first time, a dialog asks for a character card; choose the PNG card to talk with. Cancel leaves you on the title screen. The card is remembered and opens automatically next time.
+1. Click "Amanatsu AI Chat v0.7.1" on the title screen. The first time, a dialog asks for a character card; choose the PNG card to talk with. Cancel leaves you on the title screen. The card is remembered and opens automatically next time.
 2. When the character and the pink dialogue box appear, open "Connection" on the left panel.
 3. Check the provider and the LLM API URL, then use "Choose…" next to the model name to pick an installed model. Press "Save & apply". With a local Ollama you normally do not need an API key.
 4. Press "Restart bridge" twice within 10 seconds and wait for "Restarted". This restarts only this mod's local bridge; if it is not running yet, it simply starts.
@@ -61,7 +61,7 @@ Reply speed depends heavily on the model size and your PC. Without a GPU, a repl
 
 | Control | What it does |
 | --- | --- |
-| "Amanatsu AI Chat v0.7.0" on the title screen | Opens the chat screen. The game's own start button stays available. |
+| "Amanatsu AI Chat v0.7.1" on the title screen | Opens the chat screen. The game's own start button stays available. |
 | "Prev char" / "Next char" | Cycles through the cards in `UserData/chara/female`. |
 | "Open card…" | Picks a PNG card with the Windows file dialog. |
 | "◀ Pose ▶" next to the name | Switches the idle standing pose (Pose 01-12). The choice is saved per character and she returns to it after motions. |
@@ -72,7 +72,7 @@ Reply speed depends heavily on the model size and your PC. Without a GPU, a repl
 | 1 / 2 | Switches eyes / neck between following the camera and following the animation. |
 | Brow / Eyes / Mouth `+` / `-` | Changes each face part individually. |
 | "Blush" / "Eyes open" / "Mouth open" | `+` / `-` fixes the strength or openness (0.0-1.0). "Auto" returns eyes and mouth to blinking and lip movement. |
-| "Save current face" | Saves the current face as a shared expression preset with an ID and a description for the AI. |
+| Expression preset controls ("Prev", "Next", "New", "Save current face", "Delete") | Create, edit and delete the shared expression presets. See "Creating, editing and deleting expression presets" in section 5. |
 | "Light" | Adjusts the character light's vertical and horizontal angle, intensity and color (Windows color picker). "Reset to default" is included. Settings are saved. |
 | "Shadow" | Cycles the chat light's shadows: none, hard, soft. |
 | "Options" | Opens the game's own options window. Closing it returns to the chat. |
@@ -86,7 +86,7 @@ Keys can be changed in the config file. Shortcuts such as 1, 2, H and Ctrl do no
 
 With every reply, the AI picks the following to match the conversation:
 
-- **Expression**: one of the shared expression presets (28 by default). It does not combine brows, eyes and mouth on its own.
+- **Expression**: one of the shared expression presets (29 by default). It does not combine brows, eyes and mouth on its own.
 - **Motion**: stretching, gazing into the distance and similar movements. "Turn left/right" is not offered, because on the face-to-face chat screen it would leave her with her back to you.
 - **Standing pose**: one of 12 poses, chosen by mood or on request ("cross your arms"). The pose stays after the reply and is saved per character.
 - **Clothing**: see "Asking about clothes" below.
@@ -110,7 +110,27 @@ The conversation is remembered only while the game is running. If you close the 
 
 The ZIP includes ten English personality presets: caretaker, tomboy, graceful, ojousama, diligent, gal, big sis, devoted, quiet and tsundere. The installer copies them to `BepInEx/config/amanatsu.ai-chat/personalities-en`; pick one with "Open file…" and press "Apply to card". Files with the same name are never overwritten. The English edition keeps its own folders, so Japanese presets never appear in the list.
 
-To make an expression preset, adjust brows, eyes, mouth, blush, eye openness and mouth openness on the panel, enter an ID (lowercase letters, digits and `_`) and a description for the AI, then press "Save current face". If openness is left on "Auto", the preset leaves blinking and lip movement to the animation. The English edition saves presets to `BepInEx/config/amanatsu.ai-chat/expression-presets-en.json`, shared by all characters. The AI receives each preset's ID and description. How blush looks depends on the character's own materials and settings.
+### Creating, editing and deleting expression presets
+
+The expressions the AI chooses are shared "expression presets". There are 29 by default, and you can create, edit and delete them with the expression controls near the bottom of the control panel. The AI receives each preset's ID and description and chooses by reading the description, so describe when the face should be used, not only how it looks.
+
+**Create a new one**
+1. Press "New" in the expression controls. The ID and description fields are cleared.
+2. Make the face on the panel: pick brow, eye and mouth shapes with `+` / `-`, and set "Blush", "Eyes open" and "Mouth open" with `+` / `-`. Leave eyes and mouth on "Auto" to keep blinking and lip movement from the animation.
+3. Enter an ID (starts with a lowercase letter; lowercase letters, digits and `_`, up to 40 characters) and a description for the AI (one line, up to 160 characters).
+4. Press "Save current face".
+
+**Edit an existing one**
+1. Choose the expression with "Prev" / "Next". The face is shown and its ID and description fill the fields.
+2. Adjust the face or the description.
+3. Press "Save current face" with the same ID to overwrite it. Saving under a different ID adds a new expression and keeps the original.
+
+**Delete one**
+1. Choose the expression with "Prev" / "Next".
+2. Press "Delete", then press it again within 10 seconds. A confirmation message appears after the first press.
+3. The last remaining preset cannot be deleted. The 29 defaults can be deleted too, but there is no way to restore them, so be careful.
+
+The English edition saves presets to `BepInEx/config/amanatsu.ai-chat/expression-presets-en.json`, shared by all characters. Changes apply from the next reply. How blush looks depends on the character's own materials and settings.
 
 "Connection" sets the provider (Ollama or an OpenAI-compatible API), bridge URL, LLM API URL, model name, API key and whether Ollama's thinking is logged. Choosing the model with "Choose…" avoids typos. The list is fetched with the API key currently in the field, so it works before you save. Long lists have "Prev page" / "Next page" buttons, and models that cannot chat (audio, image, embedding and so on) are left out of OpenAI-compatible lists. Remote APIs require HTTPS. With thinking logging on, the model's reasoning may be written to the log, so keep it off for private conversations.
 

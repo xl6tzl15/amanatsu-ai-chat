@@ -25,7 +25,8 @@ internal static class ExpressionCatalog
             ["displeased"] = "displeased look", ["sulky"] = "sulky pout",
             ["flustered"] = "flustered and bright red with embarrassment", ["dreamy"] = "dreamy, entranced look with flushed cheeks",
             ["melting"] = "face melting with pleasure during a sexual act; use only in the middle of the act",
-            ["heart_eyes"] = "heart-eyed, completely smitten"
+            ["heart_eyes"] = "heart-eyed, completely smitten",
+            ["default"] = "the default, expressionless face"
         };
 
     private static readonly IReadOnlyDictionary<string, string> JapaneseDescriptions =
@@ -45,7 +46,8 @@ internal static class ExpressionCatalog
             ["displeased"] = "不満げな表情", ["sulky"] = "拗ねた表情",
             ["flustered"] = "顔を真っ赤にして恥じらう表情", ["dreamy"] = "頬を染めてうっとりした表情",
             ["melting"] = "性的な行為の最中に快感でとろけきった表情。行為の最中以外では使わない",
-            ["heart_eyes"] = "目がハートになるほど夢中な表情"
+            ["heart_eyes"] = "目がハートになるほど夢中な表情",
+            ["default"] = "何も表情を作っていないデフォルトの顔（無表情）"
         };
 
     public static void FillMissingDescriptions(IDictionary<string, ExpressionPreset> expressions)
@@ -88,6 +90,7 @@ internal static class ExpressionCatalog
         ["dreamy"] = new(8, 0, 26, .6f) { EyesOpen = .6f },   // うっとり
         ["melting"] = new(8, 0, 27, .6f) { EyesOpen = .4f },  // とろけ
         ["heart_eyes"] = new(8, 21, 27, .6f),      // ハート目
+        ["default"] = new(0, 0, 0, 0f),            // デフォルトの顔（無表情）
         };
         FillMissingDescriptions(expressions);
         return expressions;

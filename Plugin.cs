@@ -160,7 +160,7 @@ public sealed class AiChatBehaviour : MonoBehaviour
                     ColorUtility.TryParseHtmlString(Settings.LightColor.Value, out var lightColor) ? lightColor : Color.white),
                 AdjustLight, ChooseLightColor, ResetLight);
             _ui.AddInlineExpressionControls(GlobalExpressions, SaveCurrentExpressionPreset,
-                ApplySavedExpressionPreset, AdjustFaceValue);
+                ApplySavedExpressionPreset, AdjustFaceValue, DeleteExpressionPreset);
             var stageReady = _visible && _stage.Enter(CharacterCardPath);
             _adapter = new CharacterAdapter(_character, LogSource!, () => _stage?.Human, motionId => _stage?.PlayMotion(motionId) == true) { PoseSetter = ApplyPoseFromAi };
             _runner = new SequenceRunner(_adapter, text => { _stage.ShowText(text); Append($"{_stage.CharacterName ?? _character.Name}: {text}"); }, LogSource!);
@@ -618,6 +618,39 @@ public sealed class AiChatBehaviour : MonoBehaviour
     }
 
     [HideFromIl2Cpp]
+    private bool DeleteExpressionPreset(string key)
+    {
+        key = key?.Trim() ?? "";
+        if (!_globalExpressions.ContainsKey(key))
+        {
+            _status = L.T($"表情プリセット '{key}' はありません", $"There is no expression preset '{key}'");
+            return false;
+        }
+        if (_globalExpressions.Count <= 1)
+        {
+            _status = L.T("最後の表情プリセットは削除できません", "The last expression preset cannot be deleted");
+            return false;
+        }
+        try
+        {
+            var next = new Dictionary<string, ExpressionPreset>(_globalExpressions, StringComparer.OrdinalIgnoreCase);
+            next.Remove(key);
+            GlobalExpressionPresets.Save(GlobalExpressionPresets.PathOnDisk, next);
+            _globalExpressions = next;
+            _baseCharacter.Expressions = next;
+            if (_character != null) _character.Expressions = next;
+            _status = L.T($"表情プリセット '{key}' を削除しました", $"Deleted the expression preset '{key}'");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _status = L.T($"表情プリセット削除失敗: {ex.Message}", $"Could not delete the expression preset: {ex.Message}");
+            LogSource?.LogError(ex);
+            return false;
+        }
+    }
+
+    [HideFromIl2Cpp]
     private bool SaveGlobalExpressionPreset(string key, ExpressionPreset preset)
     {
         if (!ExpressionPresetRules.Validate(key, preset, 11, 25, 29, out var error))
@@ -775,7 +808,8 @@ public sealed class AiChatBehaviour : MonoBehaviour
         {
             Commands = new()
             {
-                new() { Type = "expression", Value = "smile" },
+                // "smile" may have been deleted by the user; any remaining preset will do.
+                new() { Type = "expression", Value = _character.Expressions.ContainsKey("smile") ? "smile" : _character.Expressions.Keys.First() },
                 new() { Type = "motion", Value = "stretch" },
                 new() { Type = "text", Value = L.T("こんにちは", "Hello.") },
                 new() { Type = "wait", Duration = 3f },

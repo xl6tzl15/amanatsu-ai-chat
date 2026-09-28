@@ -125,6 +125,8 @@ internal sealed class DedicatedChatUi : IDisposable
     private Func<IReadOnlyDictionary<string, ExpressionPreset>> _inlineLoadExpressions;
     private Func<string, bool> _inlineApplyExpression;
     private readonly List<Button> _inlineFaceButtons = new();
+    private string _deleteArmedKey;
+    private float _deleteArmedUntil;
     private readonly Button _eyeMode;
     private readonly TMP_Text _eyeModeLabel;
     private readonly Button _neckMode;
@@ -465,7 +467,7 @@ internal sealed class DedicatedChatUi : IDisposable
 
     public void AddInlineExpressionControls(Func<IReadOnlyDictionary<string, ExpressionPreset>> load,
         Func<string, string, bool> saveCurrent, Func<string, bool> apply,
-        Action<string, float> adjust)
+        Action<string, float> adjust, Func<string, bool> delete)
     {
         _inlineLoadExpressions = load;
         _inlineApplyExpression = apply;
@@ -498,6 +500,26 @@ internal sealed class DedicatedChatUi : IDisposable
             _inlineExpressionDescription.SetTextWithoutNotify("");
             _inlineExpressionSelected.text = L.T("新規", "New");
             _inlineExpressionKey.ActivateInputField();
+        });
+        // Deleting needs a second press within 10 seconds, like the bridge restart.
+        MakeButton(panel, L.T("削除", "Delete"), new Vector2(366, -650), new Vector2(99, 34), () =>
+        {
+            var key = _inlineExpressionKey.text.Trim();
+            if (key.Length == 0) { _inlineExpressionFeedback.text = L.T("削除する表情を『前』『次』で選んでください", "Choose the expression to delete with Prev / Next"); return; }
+            if (_deleteArmedKey != key || Time.unscaledTime > _deleteArmedUntil)
+            {
+                _deleteArmedKey = key;
+                _deleteArmedUntil = Time.unscaledTime + 10f;
+                _inlineExpressionFeedback.text = L.T($"もう一度押すと『{key}』を削除します", $"Press again to delete \"{key}\"");
+                return;
+            }
+            _deleteArmedKey = null;
+            if (delete(key))
+            {
+                RefreshInlineExpressionList(null);
+                _inlineExpressionFeedback.text = L.T($"『{key}』を削除しました", $"Deleted \"{key}\"");
+            }
+            else _inlineExpressionFeedback.text = L.T("削除できませんでした。状態表示を確認してください", "Could not delete. Check the status line.");
         });
         _inlineExpressionFeedback = MakeText("InlineExpressionFeedback", panel, "", 13,
             new Vector2(14, -689), new Vector2(451, 25));
