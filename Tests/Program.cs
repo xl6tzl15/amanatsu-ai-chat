@@ -25,21 +25,33 @@ foreach (var (name, expected) in expectedPresets)
 if (OutfitPresets.TryGet("unknown", out _)) throw new Exception("Unknown preset accepted");
 Console.WriteLine($"Outfit vocabulary: 7 valid, 4 invalid actions and {expectedPresets.Count} presets passed.");
 
-// Dialogue pages: short text stays whole; long text splits at sentence ends and every page fits.
+// Dialogue pages: every page fits three wrapped lines (with the ▼ marker when more follow) and no text is lost.
+void CheckPages(string name, string text)
+{
+    var result = DialoguePages.Split(text);
+    if (result.Count == 0) throw new Exception($"{name}: no pages");
+    for (var i = 0; i < result.Count; i++)
+        if (!DialoguePages.Fits(result[i], i < result.Count - 1)) throw new Exception($"{name}: page {i} is longer than three lines");
+    string Strip(string x) => new string(x.Where(c => !char.IsWhiteSpace(c)).ToArray());
+    if (Strip(string.Concat(result)) != Strip(text)) throw new Exception($"{name}: text was lost");
+}
 if (DialoguePages.Split("こんにちは。").Count != 1) throw new Exception("short text was split");
 var longText = string.Concat(Enumerable.Repeat("ゼロ知識証明は、秘密を明かさずに知っていることを示す方法です。", 6));
 var pages = DialoguePages.Split(longText);
 if (pages.Count < 2) throw new Exception("long text was not split");
-if (pages.Any(p => DialoguePages.Width(p) > DialoguePages.PageWidth)) throw new Exception("a page is too wide");
 if (!pages.All(p => p.EndsWith("。"))) throw new Exception("pages should end at sentence boundaries");
-if (string.Concat(pages) != longText) throw new Exception("paging lost text");
-var runOn = new string('あ', 250);
-var runOnPages = DialoguePages.Split(runOn);
-if (string.Concat(runOnPages) != runOn || runOnPages.Any(p => DialoguePages.Width(p) > DialoguePages.PageWidth)) throw new Exception("run-on text paging failed");
-var english = string.Concat(Enumerable.Repeat("The observatory is open tonight, so come and look at the stars with me. ", 5));
-if (DialoguePages.Split(english).Any(p => DialoguePages.Width(p) > DialoguePages.PageWidth)) throw new Exception("english paging failed");
-var quoted = "聞こえたよ。「" + new string('い', 80) + "」だね。";
-var quotedPages = DialoguePages.Split(quoted);
-if (string.Concat(quotedPages) != quoted || DialoguePages.Width(quotedPages[0]) < DialoguePages.PageWidth / 2)
-    throw new Exception("a short first sentence should not leave the first page nearly empty");
-Console.WriteLine($"Dialogue pages: {pages.Count} pages for {longText.Length} characters passed.");
+CheckPages("long", longText);
+CheckPages("run-on", new string('あ', 250));
+CheckPages("english", string.Concat(Enumerable.Repeat("The observatory is open tonight, so come and look at the stars with me. ", 5)));
+CheckPages("quoted", "聞こえたよ。「" + new string('い', 80) + "」だね。");
+var manyLines = "うん。\nそうだね。\nでも。\nほんとに？\nまたね。";
+if (DialoguePages.Split(manyLines).Count < 2) throw new Exception("five short lines should not fit one page");
+CheckPages("many lines", manyLines);
+CheckPages("blank lines", "はい。\n\n\n\nそれで？\n\n\nうん。");
+var spaced = "今日ね、\n\nちょっと\n\n面白いことがあったんだ。\n\n新しいカフェに\n\n寄ったら、\n\nすごく素敵な\n\n香りがしてたの。";
+if (DialoguePages.Split(spaced).Count != 3) throw new Exception($"blank-line reply: expected 3 pages, got {DialoguePages.Split(spaced).Count}");
+CheckPages("blank-line reply", spaced);
+CheckPages("spaces only", new string('　', 150));
+CheckPages("empty", "");
+if (DialoguePages.Split(new string('　', 150)).Count != 1) throw new Exception("blank text should give one page");
+Console.WriteLine($"Dialogue pages: {pages.Count} pages for {longText.Length} characters, line and blank cases passed.");

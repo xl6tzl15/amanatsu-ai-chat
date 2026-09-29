@@ -194,18 +194,20 @@ public sealed class AiChatBehaviour : MonoBehaviour
         _runner?.SetPaused(OptionsBusy);
         _runner?.Update();
         _stage?.Maintain();
+        // Keys and a click on the dialogue window each ask for the next page; at most one page turns per frame.
+        var turnPage = false;
         if (_visible && !OptionsBusy && _stage?.IsReady == true
             && _ui?.InputFocused != true && _ui?.ModalOpen != true)
         {
             if (Settings.ToggleEyes.Value.IsDown() || Settings.ToggleEyesSecondary.Value.IsDown()) _stage.ToggleEyeLookMode();
             if (Settings.ToggleNeck.Value.IsDown() || Settings.ToggleNeckSecondary.Value.IsDown()) _stage.ToggleNeckLookMode();
             if (Settings.ToggleMenu.Value.IsDown()) _ui.SetMenuVisible(!_ui.MenuVisible);
-            if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.PageDown)) _stage.NextPage();
+            if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.PageDown)) turnPage = true;
         }
-        // Clicking the dialogue window turns the page of a long reply.
         if (_visible && !OptionsBusy && _stage?.HasMorePages == true && _ui?.ModalOpen != true
             && Input.GetMouseButtonDown(0) && _stage.DialogueWindowContains(Input.mousePosition))
-            _stage.NextPage();
+            turnPage = true;
+        if (turnPage) _stage!.NextPage();
         if (_stage?.IsReady == true && _stage.ActiveCardPath != _profileCardPath)
         {
             try { BindCharacterProfile(); }

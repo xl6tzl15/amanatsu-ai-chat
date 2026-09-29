@@ -1,12 +1,16 @@
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Amanatsu.AiChat.Sequence;
 
-// Splits a long line into pages that fit the native dialogue window (about three lines).
+// Splits a long line into pages that fit the native dialogue window: at most three wrapped lines.
 // Width is estimated: a full-width character counts 1, a half-width one about half of that.
+// The window holds about 36 full-width characters per line; 34 leaves a margin.
 internal static class DialoguePages
 {
-    public const float PageWidth = 90f;
+    public const float LineWidth = 34f;
+    public const int MaxLines = 3;
+    public const string MoreMarker = " ▼";
     private static readonly char[] SentenceEnds = { '。', '！', '？', '!', '?', '…', '.', '\n' };
     private static readonly char[] ClauseEnds = { '、', '，', ',', '；', ';', '：', ':', ' ' };
 
@@ -17,55 +21,64 @@ internal static class DialoguePages
         return width;
     }
 
-    public static List<string> Split(string text, float pageWidth = PageWidth)
+    // Wrapped line count; an explicit newline always starts a new line.
+    public static int Lines(string text)
+    {
+        var lines = 0;
+        foreach (var line in text.Split('\n'))
+            lines += Math.Max(1, (int)Math.Ceiling(Width(line) / LineWidth));
+        return lines;
+    }
+
+    // Whether the text fits one page; a page followed by more pages also carries the marker.
+    public static bool Fits(string text, bool withMarker = true) =>
+        Lines(withMarker ? text.TrimEnd() + MoreMarker : text.TrimEnd()) <= MaxLines;
+
+    public static List<string> Split(string text)
     {
         var pages = new List<string>();
-        if (string.IsNullOrEmpty(text) || Width(text) <= pageWidth)
+        // The window has only three lines, so a run of blank lines becomes a single line break.
+        text = Regex.Replace(text ?? "", @"\n[ \t　]*(?:\n[ \t　]*)+", "\n");
+        if (text.Length == 0 || Fits(text, false))
         {
-            pages.Add(text ?? "");
+            pages.Add(text);
             return pages;
         }
         var page = new StringBuilder();
-        foreach (var piece in Pieces(text, pageWidth))
+        // Pieces never exceed one line, so a page can always take at least one of them.
+        foreach (var piece in Pieces(text, LineWidth - Width(MoreMarker)))
         {
-            if (page.Length > 0 && Width(page.ToString()) + Width(piece) > pageWidth)
+            if (page.Length > 0 && !Fits(page + piece))
             {
-                // A page that is still mostly empty takes the next sentence clause by clause.
-                if (Width(page.ToString()) < pageWidth / 2)
-                {
-                    foreach (var clause in Pieces(piece, pageWidth / 4))
-                    {
-                        if (Width(page.ToString()) + Width(clause) > pageWidth)
-                        {
-                            pages.Add(page.ToString().Trim());
-                            page.Clear();
-                        }
-                        page.Append(clause);
-                    }
-                    continue;
-                }
-                pages.Add(page.ToString().Trim());
+                AddPage(pages, page.ToString());
                 page.Clear();
             }
             page.Append(piece);
         }
-        if (page.ToString().Trim().Length > 0) pages.Add(page.ToString().Trim());
+        AddPage(pages, page.ToString());
+        if (pages.Count == 0) pages.Add("");
         return pages;
     }
 
-    // Sentences first; a sentence wider than a page is cut at clauses, then by width.
-    private static IEnumerable<string> Pieces(string text, float pageWidth)
+    private static void AddPage(List<string> pages, string page)
+    {
+        page = page.Trim();
+        if (page.Length > 0) pages.Add(page);
+    }
+
+    // Sentences first; a sentence wider than the limit is cut at clauses, then by width.
+    private static IEnumerable<string> Pieces(string text, float limit)
     {
         foreach (var sentence in Cut(text, SentenceEnds))
         {
-            if (Width(sentence) <= pageWidth) { yield return sentence; continue; }
+            if (Width(sentence.TrimEnd('\n')) <= limit) { yield return sentence; continue; }
             foreach (var clause in Cut(sentence, ClauseEnds))
             {
-                if (Width(clause) <= pageWidth) { yield return clause; continue; }
+                if (Width(clause.TrimEnd('\n')) <= limit) { yield return clause; continue; }
                 var chunk = new StringBuilder();
                 foreach (var ch in clause)
                 {
-                    if (Width(chunk.ToString()) + Width(ch.ToString()) > pageWidth)
+                    if (chunk.Length > 0 && Width(chunk.ToString()) + Width(ch.ToString()) > limit)
                     {
                         yield return chunk.ToString();
                         chunk.Clear();
