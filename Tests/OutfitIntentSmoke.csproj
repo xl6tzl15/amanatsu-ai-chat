@@ -9,5 +9,6 @@
     <Compile Remove="ExpressionPresetsSmoke.cs" />
     <Compile Include="..\Sequence\OutfitIntent.cs" Link="OutfitIntent.cs" />
     <Compile Include="..\Sequence\OutfitPresets.cs" Link="OutfitPresets.cs" />
+    <Compile Include="..\Sequence\DialoguePages.cs" Link="DialoguePages.cs" />
   </ItemGroup>
 </Project>

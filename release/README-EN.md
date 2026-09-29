@@ -1,6 +1,6 @@
 # Amanatsu AI Chat — User Manual (English edition)
 
-For Amanatsu AI Chat 0.7.1. This is an unofficial mod for *Amanatsu Location* (甘夏ろけーしょん). The normal game still starts from the title screen as usual; the chat screen opens from the "Amanatsu AI Chat v0.7.1" button on the title screen.
+For Amanatsu AI Chat 0.7.2. This is an unofficial mod for *Amanatsu Location* (甘夏ろけーしょん). The normal game still starts from the title screen as usual; the chat screen opens from the "Amanatsu AI Chat v0.7.2" button on the title screen.
 
 This file is for players. Implementation, testing and AI-agent notes are in the accompanying `README-AI.md`.
 
@@ -34,20 +34,20 @@ Example model download sizes. A model larger than your GPU memory runs partly on
 The examples below assume the game is at `C:\ILLGAMES\AmanatsuLocation`. Replace the path if yours is different.
 
 1. Close the game. A running game locks the DLL.
-2. Extract the ZIP and open the `AmanatsuAiChat-EN-0.7.1` folder.
+2. Extract the ZIP and open the `AmanatsuAiChat-EN-0.7.2` folder.
 3. Open PowerShell in that folder and run `python -m pip install -r .\BepInEx\plugins\AmanatsuAiChat\requirements.txt`.
 4. In the same place, run `./install.ps1 -GameRoot 'C:\ILLGAMES\AmanatsuLocation'`.
    - If an earlier version is in a folder under `BepInEx/plugins` (for example `plugins/SELF`), that copy is updated. Otherwise the mod goes into `BepInEx/plugins`.
    - Replaced files are backed up to `BepInEx/config/amanatsu.ai-chat/backups` in the game folder. Settings, cards and saves are not overwritten.
    - If `Amanatsu.AiChat.dll` exists in more than one place, it would load twice, so the installer stops and lists the locations. Keep only one and run it again.
 5. If you use Ollama, start it and download a model, for the default model: `ollama pull gemma4:e4b`. Models are large, so check your free space and allow time.
-6. Start the game. If "Amanatsu AI Chat v0.7.1" appears on the title screen, the mod is loaded.
+6. Start the game. If "Amanatsu AI Chat v0.7.2" appears on the title screen, the mod is loaded.
 
 If PowerShell refuses to run `install.ps1` because of the execution policy, read the error and allow it temporarily for trusted files only. You do not need to lower your security settings permanently.
 
 ## 3. Your first conversation
 
-1. Click "Amanatsu AI Chat v0.7.1" on the title screen. The first time, a dialog asks for a character card; choose the PNG card to talk with. Cancel leaves you on the title screen. The card is remembered and opens automatically next time.
+1. Click "Amanatsu AI Chat v0.7.2" on the title screen. The first time, a dialog asks for a character card; choose the PNG card to talk with. Cancel leaves you on the title screen. The card is remembered and opens automatically next time.
 2. When the character and the pink dialogue box appear, open "Connection" on the left panel.
 3. Check the provider and the LLM API URL, then use "Choose…" next to the model name to pick an installed model. Press "Save & apply". With a local Ollama you normally do not need an API key.
 4. Press "Restart bridge" twice within 10 seconds and wait for "Restarted". This restarts only this mod's local bridge; if it is not running yet, it simply starts.
@@ -61,7 +61,7 @@ Reply speed depends heavily on the model size and your PC. Without a GPU, a repl
 
 | Control | What it does |
 | --- | --- |
-| "Amanatsu AI Chat v0.7.1" on the title screen | Opens the chat screen. The game's own start button stays available. |
+| "Amanatsu AI Chat v0.7.2" on the title screen | Opens the chat screen. The game's own start button stays available. |
 | "Prev char" / "Next char" | Cycles through the cards in `UserData/chara/female`. |
 | "Open card…" | Picks a PNG card with the Windows file dialog. |
 | "◀ Pose ▶" next to the name | Switches the idle standing pose (Pose 01-12). The choice is saved per character and she returns to it after motions. |
@@ -79,6 +79,7 @@ Reply speed depends heavily on the model size and your PC. Without a GPU, a repl
 | Background "Prev" / "Next" / "Choose image…" | Uses a plain color, a background bundled with the game, or your own PNG/JPEG. Your image is not copied into the mod. |
 | "－" at the top right / "Menu" at the top left / H | Hides or shows the control panel. |
 | "Exit" | Ends the conversation and returns to the normal title screen. |
+| Click the dialogue window / Space / PageDown | Long replies are split into pages; "▼" at the end means more follows. Click the dialogue window, or press Space or PageDown, to show the next page. The keys work only while no text box has the cursor. |
 
 Keys can be changed in the config file. Shortcuts such as 1, 2, H and Ctrl do not work while a text box has the cursor. F10 also opens and closes the chat screen.
 

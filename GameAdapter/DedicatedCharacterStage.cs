@@ -186,11 +186,43 @@ internal sealed class DedicatedCharacterStage : IDisposable
     public bool ShowText(string text)
     {
         if (!IsReady) return false;
-        _core.Scenario.VisibleWindowForce = true;
-        _core.Scenario.TextController.Set(CharacterName ?? L.T("AI会話", "AI Chat"), text);
+        _pages.Clear();
+        _pages.AddRange(Sequence.DialoguePages.Split(text ?? ""));
+        _page = 0;
         _lastText = text;
-        _log.LogInfo($"Native ADV text displayed: speaker={CharacterName}, characters={text.Length}");
+        DisplayPage();
+        _log.LogInfo($"Native ADV text displayed: speaker={CharacterName}, characters={text?.Length ?? 0}, pages={_pages.Count}");
         return true;
+    }
+
+    // Long replies are split into pages; the window shows one page and ▼ while more follow.
+    private readonly List<string> _pages = new();
+    private int _page;
+    public bool HasMorePages => _page + 1 < _pages.Count;
+
+    public bool NextPage()
+    {
+        if (!IsReady || !HasMorePages) return false;
+        _page++;
+        DisplayPage();
+        return true;
+    }
+
+    private void DisplayPage()
+    {
+        _core.Scenario.VisibleWindowForce = true;
+        var text = _pages[_page] + (HasMorePages ? " ▼" : "");
+        _core.Scenario.TextController.Set(CharacterName ?? L.T("AI会話", "AI Chat"), text);
+    }
+
+    // True when the screen point is on the native dialogue window.
+    public bool DialogueWindowContains(Vector2 screenPoint)
+    {
+        var image = IsReady ? _core.Scenario._windowImage : null;
+        if (image == null) return false;
+        var canvas = image.canvas;
+        var camera = canvas == null || canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
+        return RectTransformUtility.RectangleContainsScreenPoint(image.rectTransform, screenPoint, camera);
     }
 
     public void SetBackground(string spec)
@@ -490,7 +522,7 @@ internal sealed class DedicatedCharacterStage : IDisposable
         {
             "face" => (.30f, .89f),
             "full" => (1.95f, .50f),
-            _ => (.75f, .88f)
+            _ => (.75f, .84f)
         };
         _yaw = 0f;
         _pitch = 3f;
