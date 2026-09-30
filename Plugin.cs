@@ -63,6 +63,7 @@ public sealed class Plugin : BasePlugin
             Application.SetStackTraceLogType(LogType.Error, StackTraceLogType.Full);
             Application.add_logMessageReceived((Action<string, string, LogType>)CaptureUnityError);
         }
+        HarmonyLib.Harmony.CreateAndPatchAll(typeof(HPostureUnlock));
         AddComponent<AiChatBehaviour>();
         Log.LogInfo($"{ModIdentity.Label} loaded. Dedicated UI is available without entering the main game.");
     }
@@ -295,6 +296,8 @@ public sealed class AiChatBehaviour : MonoBehaviour
 
     private void UpdateNativeOptions()
     {
+        // The H scene has its own options button; closing it must not bring back the chat UI or its graphics.
+        if (_h?.Active == true || _stage?.Suspended == true) return;
         var active = AL.Config.ConfigWindow.IsActive || AL.Config.ConfigWindow.IsTransition;
         if (!_optionsPending)
         {

@@ -406,6 +406,8 @@ internal sealed class DedicatedChatUi : IDisposable
     {
         _hInvite = MakeButton(_root.GetComponent<RectTransform>(), L.T("Hに進む", "Go to H"), new Vector2(1290, -850), new Vector2(150, 42), accept);
         _hInvite.name = "HInvite";
+        // Pink like the dialogue window so it stands apart from the blue "Send" button.
+        _hInvite.targetGraphic.color = new Color(0.93f, 0.36f, 0.62f, 0.96f);
         _hInvite.gameObject.SetActive(false);
     }
 

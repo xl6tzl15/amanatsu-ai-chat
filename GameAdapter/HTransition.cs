@@ -44,6 +44,9 @@ internal sealed class HTransition
     public HTransition(ManualLogSource log) { _log = log; }
 
     public bool Active => _phase is not (Phase.Idle or Phase.Done);
+
+    // True while an H scene started from the chat runs; the posture patch unlocks every posture then.
+    public static bool UnlockPostures { get; private set; }
     public string Status { get; private set; } = "idle";
     public string Error { get; private set; }
 
@@ -95,6 +98,7 @@ internal sealed class HTransition
                         ? new Il2CppSystem.Nullable<AL.H.Define.PostureCategory>(_category.Value)
                         : new Il2CppSystem.Nullable<AL.H.Define.PostureCategory>();
                     var parameter = new AL.H.Parameter(_state, AL.H.Parameter.HPattern.Normal, category, _place, null, humans);
+                    UnlockPostures = true;
                     _scene = AL.H.HScene.InitializeAsync(parameter, new Il2CppSystem.Threading.CancellationToken());
                     _log.LogInfo($"H scene requested: place={_place}, category={_category?.ToString() ?? "any"}, state={_state}");
                     Enter(Phase.Running, float.PositiveInfinity);
@@ -162,6 +166,7 @@ internal sealed class HTransition
 
     private void Release()
     {
+        UnlockPostures = false;
         foreach (var human in new[] { _female, _male })
             if (human != null) try { human.Dispose(); } catch { }
         _female = _male = null;

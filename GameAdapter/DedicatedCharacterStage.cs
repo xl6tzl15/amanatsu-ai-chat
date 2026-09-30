@@ -624,6 +624,9 @@ internal sealed class DedicatedCharacterStage : IDisposable
         if (_light != null) { RenderSettings.sun = _oldSun; _light.SetActive(false); }
         if (_nativeCanvasGroup != null) { _nativeCanvasGroup.alpha = 0f; _nativeCanvasGroup.blocksRaycasts = false; _nativeCanvasGroup.interactable = false; }
         _uiRoot.SetActive(false);
+        // ADVSetup.Load registers the ADV core as a scene overlap, and every CameraController
+        // ignores input while one exists, so the H scene's camera could not be moved.
+        if (_core != null) Manager.Scene.Remove(new Manager.Scene.IOverlap(_core.Pointer));
         _postProcessing.SetActive(false);
         AiChatBehaviour.Graphics.Exit();
         RestoreCursor();
@@ -634,6 +637,7 @@ internal sealed class DedicatedCharacterStage : IDisposable
         if (!Suspended) return;
         Suspended = false;
         _uiRoot.SetActive(true);
+        if (_core != null) Manager.Scene.Add(new Manager.Scene.IOverlap(_core.Pointer));
         AiChatBehaviour.Graphics.Enter();
         _postProcessing.SetActive(true);
         if (_human != null) _human.GameObject.SetActive(true);

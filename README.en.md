@@ -4,7 +4,7 @@ English | [日本語](README.md)
 
 An unofficial mod for *Amanatsu Location* (甘夏ろけーしょん). It adds a dedicated chat screen where you talk freely with a character through AI. You can use either a local model on your PC (Ollama) or an API such as OpenAI's (any OpenAI-compatible API). With every reply, the AI chooses her expression, motion, standing pose and clothing. You can create, edit and delete the expressions the AI chooses from on screen. When the character invites you to sex or agrees to it, a "Go to H" button takes you to the game's own H scene.
 
-- Version: 0.8.0 (Japanese and English editions)
+- Version: 0.8.1 (Japanese and English editions)
 - Tested with: game 1.0.2 / BepInEx 6.0.0-be.788 (IL2CPP)
 - License: MIT ([LICENSE](LICENSE))
 
