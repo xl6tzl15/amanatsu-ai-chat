@@ -612,8 +612,41 @@ internal sealed class DedicatedCharacterStage : IDisposable
         _background.RefreshFrame();
     }
 
+    // Hides the stage while another scene (H) owns the screen, without releasing it.
+    public bool Suspended { get; private set; }
+
+    public void Suspend()
+    {
+        if (!IsReady || Suspended) return;
+        Suspended = true;
+        if (_human != null) _human.GameObject.SetActive(false);
+        if (_camera != null) _camera.enabled = false;
+        if (_light != null) { RenderSettings.sun = _oldSun; _light.SetActive(false); }
+        if (_nativeCanvasGroup != null) { _nativeCanvasGroup.alpha = 0f; _nativeCanvasGroup.blocksRaycasts = false; _nativeCanvasGroup.interactable = false; }
+        _uiRoot.SetActive(false);
+        _postProcessing.SetActive(false);
+        AiChatBehaviour.Graphics.Exit();
+        RestoreCursor();
+    }
+
+    public void Resume()
+    {
+        if (!Suspended) return;
+        Suspended = false;
+        _uiRoot.SetActive(true);
+        AiChatBehaviour.Graphics.Enter();
+        _postProcessing.SetActive(true);
+        if (_human != null) _human.GameObject.SetActive(true);
+        if (_camera != null) _camera.enabled = true;
+        if (_light != null) { _light.SetActive(true); RenderSettings.sun = _light.GetComponent<Light>(); }
+        if (_nativeCanvasGroup != null) { _nativeCanvasGroup.alpha = 1f; _nativeCanvasGroup.blocksRaycasts = true; _nativeCanvasGroup.interactable = true; }
+        PlayMotion(_requestedMotion);
+        RefreshGraphics();
+    }
+
     public void Exit()
     {
+        Suspended = false;
         _requested = false;
         AiChatBehaviour.Graphics.Exit();
         _postProcessing.Dispose();

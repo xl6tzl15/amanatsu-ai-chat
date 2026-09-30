@@ -27,6 +27,9 @@ internal sealed class ConversationPostProcessing : IDisposable
         depthOfField = _beautify?.depthOfField.value, vignette = _vignette?.active == true,
         ssaoFeature = _ssaoFeature?.name, ssaoActive = _ssaoFeature?.isActive };
 
+    // Off while another scene (H) renders, so this global Volume does not blur or tint it.
+    public void SetActive(bool active) { if (_root != null) _root.SetActive(active); }
+
     public void Ensure(Camera camera, ManualLogSource log)
     {
         if (Ready) return;

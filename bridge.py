@@ -45,7 +45,7 @@ MOTION_HINTS = {
 }
 FACE_PART_LIMITS = {"eyebrow": 11, "eyes": 25, "mouth": 29}
 PROTOCOL_FRAGMENT = re.compile(
-    r'''["'「」\s]*(?:dialogue|expression|motion|pose|outfit|sequence|eyebrow|eyes|mouth)["'」]?\s*[:=]|[{}]''',
+    r'''["'「」\s]*(?:dialogue|expression|motion|pose|outfit|sex_timing|arousal|sequence|eyebrow|eyes|mouth)["'」]?\s*[:=]|[{}]''',
     re.IGNORECASE)
 
 
@@ -127,6 +127,9 @@ def mock_sequence(body: dict[str, Any]) -> dict[str, Any]:
     ])
     if motion and "idle" in motions and motion != "idle":
         sequence.append({"type": "motion", "value": "idle"})
+    # Lets the H invitation be tested without a model.
+    if "mock_h" in user_text:
+        sequence.append({"type": "h_invite", "value": "lewd" if "lewd" in user_text else "normal"})
     return {
         "sequence": sequence
     }
@@ -158,11 +161,11 @@ def build_prompt(body: dict[str, Any], context_tokens: int = 4096,
     if english:
         language_rules = (
             "and finally dialogue (spoken English that matches the decisions above). "
-            'Example: {"outfit_direction":"none","requested_outfit":"none","outfit":"none","expression":"smile","motion":"idle","pose":"none","dialogue":"Hi there."}. '
+            'Example: {"outfit_direction":"none","requested_outfit":"none","outfit":"none","expression":"smile","motion":"idle","pose":"none","dialogue":"Hi there.","sex_timing":"none","arousal":"calm"}. '
             "Do not put JSON, code, narration, or schema keys inside dialogue. "
             "You are the character yourself. Never mistake your own name for the other person's, and never "
             "address the other person by your own name. ",
-            '"expression":"angry","motion":"idle","pose":"pose_arms_crossed","dialogue":"Hmph. Whatever."}. ',
+            '"expression":"angry","motion":"idle","pose":"pose_arms_crossed","dialogue":"Hmph. Whatever.","sex_timing":"none","arousal":"calm"}. ',
             "wear_all=get fully dressed, remove_all=take everything off / get naked, half_off_all=half undressed, "
             "show_bra=show the bra (take off only the top), show_panties=show the panties, underwear_only=down to "
             "underwear, topless=bare from the waist up (top and bra off), bottomless=bare from the waist down. "
@@ -187,10 +190,10 @@ def build_prompt(body: dict[str, Any], context_tokens: int = 4096,
     else:
         language_rules = (
             "and finally dialogue (spoken Japanese that matches the decisions above). "
-            'Example: {"outfit_direction":"none","requested_outfit":"none","outfit":"none","expression":"smile","motion":"idle","pose":"none","dialogue":"こんにちは。"}. '
+            'Example: {"outfit_direction":"none","requested_outfit":"none","outfit":"none","expression":"smile","motion":"idle","pose":"none","dialogue":"こんにちは。","sex_timing":"none","arousal":"calm"}. '
             "Do not put JSON, code, narration, or schema keys inside dialogue. "
             "あなた自身がキャラクターです。自分の名前を相手の名前と取り違えたり、自分の名前で相手に呼びかけたりしないでください。 ",
-            '"expression":"angry","motion":"idle","pose":"pose_arms_crossed","dialogue":"ふん、知らない。"}. ',
+            '"expression":"angry","motion":"idle","pose":"pose_arms_crossed","dialogue":"ふん、知らない。","sex_timing":"none","arousal":"calm"}. ',
             "wear_all=服を全部着る, remove_all=全部脱ぐ/全裸, half_off_all=半脱ぎ, show_bra=ブラ見せ(上着だけ脱ぐ), "
             "show_panties=パンツ見せ, underwear_only=下着姿, topless=上半身裸(上着とブラを脱ぐ), bottomless=下半身裸. "
             "Parts: top=トップス/上/上着/シャツ, bottom=ボトムス/下/スカート/ズボン, bra=ブラ, shorts=ショーツ/パンツ, "
@@ -237,6 +240,16 @@ def build_prompt(body: dict[str, Any], context_tokens: int = 4096,
         "outfit: if the character agrees to the request, copy requested_outfit; if she refuses or "
         "delays, none. Never change clothes when nothing was requested. "
         "dialogue must agree with outfit: say you are undressing only when outfit is not none. "
+        "After dialogue, add sex_timing and then arousal, both judged from the dialogue you just wrote. "
+        "sex_timing: now only when the two are about to have sex right here, right now, and the character "
+        "agrees or invites it herself; later when she agrees to it for another time or place (tonight, after "
+        "this, in her room, next time); none when sex is not what is being agreed (flirting, praise, a kiss "
+        "only, refusing, changing the subject). "
+        "arousal: calm by default. Simply agreeing, even gladly, is calm, and so is being surprised or shy. "
+        "aroused only when her own lust shows: she begs for it, says she cannot hold back any longer, or she "
+        "is the one pushing for it. "
+        "The other person decides with a button whether to go ahead, so dialogue should invite or accept, "
+        "not describe the act. "
         + language_rules[3] +
         "The bridge handles timing and returns non-idle motions to idle. "
         "Do not invent gestures that are not listed.\n\n"
@@ -283,10 +296,12 @@ def sequence_schema(body: dict[str, Any], strict: bool = False) -> dict[str, Any
         "motion": {"type": "string", "enum": body.get("available_motions") or ["none"]},
         "pose": {"type": "string", "enum": ["none", *body.get("available_poses", [])]},
         "dialogue": {"type": "string", "minLength": 1, "maxLength": 300},
+        "sex_timing": {"type": "string", "enum": ["none", "now", "later"]},
+        "arousal": {"type": "string", "enum": ["calm", "aroused"]},
     }
     # OpenAI strict json_schema requires every property to be required; Ollama does not,
     # and forcing face keys there makes the model pick arbitrary (often comic) faces.
-    required = list(properties) if strict else ["outfit_direction", "requested_outfit", "outfit", "expression", "motion", "pose", "dialogue"]
+    required = list(properties) if strict else ["outfit_direction", "requested_outfit", "outfit", "expression", "motion", "pose", "dialogue", "sex_timing", "arousal"]
     return {"type": "object", "properties": properties,
             "required": required, "additionalProperties": False}
 
@@ -524,8 +539,9 @@ class Bridge:
                 hint = " (the model spent it on hidden reasoning; use a no-think model)" if thinking else ""
                 raise ValueError(f"model output was truncated{hint}")
             result = extract_json_content(upstream_payload)
-            for key in ("pose", "requested_outfit", "outfit_direction"):
+            for key in ("pose", "requested_outfit", "outfit_direction", "sex_timing"):
                 result.setdefault(key, "none")
+            result.setdefault("arousal", "calm")
             errors = list(Draft202012Validator(schema).iter_errors(result))
             if errors:
                 raise ValueError(f"model output violated schema: {errors[0].message}")
@@ -556,6 +572,9 @@ class Bridge:
         if result["motion"] != "none":
             sequence.append({"type": "motion", "value": result["motion"]})
         sequence.append({"type": "text", "value": dialogue})
+        # Only sex agreed for right now offers the player the button to the H scene.
+        if result.get("sex_timing") == "now":
+            sequence.append({"type": "h_invite", "value": "lewd" if result.get("arousal") == "aroused" else "normal"})
         if result["motion"] not in ("none", "idle"):
             sequence.append({"type": "wait", "duration": 3})
             if "idle" in body.get("available_motions", []):

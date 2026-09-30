@@ -26,7 +26,7 @@ public sealed class SequenceCommand
 public static class SequenceValidator
 {
     private static readonly HashSet<string> Types = new(StringComparer.OrdinalIgnoreCase)
-        { "expression", "motion", "text", "wait", "eyebrow", "eyes", "mouth", "outfit", "pose" };
+        { "expression", "motion", "text", "wait", "eyebrow", "eyes", "mouth", "outfit", "pose", "h_invite" };
     // Conservative ranges checked against the shipped face tables and live controllers.
     // CharacterAdapter checks the active card's actual limits again before applying.
     public static readonly IReadOnlyDictionary<string, int> FacePartMaxExclusive = new Dictionary<string, int>
@@ -82,6 +82,11 @@ public static class SequenceValidator
             else if (type == "pose" && GameAdapter.MotionCatalog.PoseIndex(command.Value) == null)
             {
                 warn($"Unknown pose ignored: {command.Value}");
+                continue;
+            }
+            else if (type == "h_invite" && command.Value is not ("normal" or "lewd"))
+            {
+                warn($"Unknown h_invite ignored: {command.Value}");
                 continue;
             }
             else if (type == "outfit" && !OutfitIntent.IsValidAction(command.Value))

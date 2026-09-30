@@ -105,6 +105,8 @@ public sealed class AiChatBehaviour : MonoBehaviour
     private float _restartConfirmationUntil;
     private DedicatedChatUi _ui;
     private DedicatedCharacterStage _stage;
+    private HTransition _h;
+    private string _hInvite;
     private int _requestGeneration;
     private bool _greetingPending;
     private bool _greetingInFlight;
@@ -149,12 +151,24 @@ public sealed class AiChatBehaviour : MonoBehaviour
                 () => _stage?.Zoom(-1f), () => _stage?.Zoom(1f), AdjustFace,
                 () => _stage?.ToggleEyeLookMode(), () => _stage?.ToggleNeckLookMode(), SwitchCoordinate, CyclePose, Settings);
             _stage = new DedicatedCharacterStage(_ui.Root, LogSource!, Settings);
+            _h = new HTransition(LogSource!);
             _titleEntry = new TitleEntryUi(_ui.Font, () => SetVisible(true));
             _ui.AddEnvironmentControls(OpenNativeOptions, p => _stage.SetCameraPreset(p),
                 () => { Graphics.ShadowType.Value = (LightShadows)(((int)Graphics.ShadowType.Value + 1) % 3); _stage.RefreshGraphics(); },
                 () => L.T("影: ", "Shadow: ") + Graphics.ShadowType.Value,
                 CycleBackground, ChooseBackgroundImage, () => BackgroundBackdrop.Label(Settings.BackgroundImage.Value));
             _ui.AddModelPicker(RequestModelList);
+            _ui.AddHInvite(AcceptHInvite);
+            _ui.AddHSettings(
+                () => string.IsNullOrWhiteSpace(Settings.HMaleCard.Value) ? L.T("既定の男性", "Default male") : Path.GetFileName(Settings.HMaleCard.Value),
+                () => { var card = NativeFilePicker.ChooseMaleCard(Settings.HMaleCard.Value); if (card != null) Settings.HMaleCard.Value = card; },
+                () => Settings.HMaleCard.Value = "",
+                () => HTransition.MapName(Settings.HMap.Value),
+                step =>
+                {
+                    var i = Array.IndexOf(HTransition.Maps, Settings.HMap.Value);
+                    Settings.HMap.Value = HTransition.Maps[((i < 0 ? 0 : i) + step + HTransition.Maps.Length) % HTransition.Maps.Length];
+                });
             _ui.AddLightControls(
                 () => (Settings.LightVertical.Value, Settings.LightHorizontal.Value, Settings.LightIntensity.Value,
                     ColorUtility.TryParseHtmlString(Settings.LightColor.Value, out var lightColor) ? lightColor : Color.white),
@@ -179,11 +193,13 @@ public sealed class AiChatBehaviour : MonoBehaviour
 
     private void Update()
     {
+        _h?.Update();
+        var inH = _h?.Active == true || _stage?.Suspended == true;
         UpdateNativeOptions();
-        _titleEntry?.Tick(_visible, OptionsBusy);
-        if (_visible && SceneManager.GetActiveScene().name != "Title")
+        _titleEntry?.Tick(_visible || inH, OptionsBusy);
+        if (_visible && !inH && SceneManager.GetActiveScene().name != "Title")
             SetVisible(false);
-        if (!OptionsBusy && Settings.OpenChat.Value.IsDown())
+        if (!OptionsBusy && !inH && Settings.OpenChat.Value.IsDown())
             SetVisible(!_visible);
         while (_mainThread.TryDequeue(out var action))
         {
@@ -196,7 +212,7 @@ public sealed class AiChatBehaviour : MonoBehaviour
         _stage?.Maintain();
         // Keys and a click on the dialogue window each ask for the next page; at most one page turns per frame.
         var turnPage = false;
-        if (_visible && !OptionsBusy && _stage?.IsReady == true
+        if (_visible && !inH && !OptionsBusy && _stage?.IsReady == true
             && _ui?.InputFocused != true && _ui?.ModalOpen != true)
         {
             if (Settings.ToggleEyes.Value.IsDown() || Settings.ToggleEyesSecondary.Value.IsDown()) _stage.ToggleEyeLookMode();
@@ -204,7 +220,7 @@ public sealed class AiChatBehaviour : MonoBehaviour
             if (Settings.ToggleMenu.Value.IsDown()) _ui.SetMenuVisible(!_ui.MenuVisible);
             if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.PageDown)) turnPage = true;
         }
-        if (_visible && !OptionsBusy && _stage?.HasMorePages == true && _ui?.ModalOpen != true
+        if (_visible && !inH && !OptionsBusy && _stage?.HasMorePages == true && _ui?.ModalOpen != true
             && Input.GetMouseButtonDown(0) && _stage.DialogueWindowContains(Input.mousePosition))
             turnPage = true;
         if (turnPage) _stage!.NextPage();
@@ -214,7 +230,7 @@ public sealed class AiChatBehaviour : MonoBehaviour
             catch (Exception ex) { _status = "character profile failed"; LogSource?.LogError(ex); }
         }
         _diagnostics?.Tick(ExecuteTestCommand, DiagnosticState);
-        if (_visible) _stage?.UpdateView(_ui?.InputFocused == true || _ui?.ModalOpen == true || OptionsBusy);
+        if (_visible && !inH) _stage?.UpdateView(_ui?.InputFocused == true || _ui?.ModalOpen == true || OptionsBusy);
         if (_greetingPending && _visible && !OptionsBusy && _stage?.IsReady == true && _client != null
             && !_requesting && !_bridgeRestarting && _runner is { IsRunning: false })
         {
@@ -236,6 +252,7 @@ public sealed class AiChatBehaviour : MonoBehaviour
             _stage?.NeckFollowsCamera == true,
             _adapter?.FaceParts() ?? (-1, -1, -1, 0, 0, 0),
             _adapter?.CaptureExpression());
+        _ui?.SetHInvite(_visible && !inH && _hInvite != null && _stage?.IsReady == true && !_requesting && _runner?.IsRunning != true);
         _ui?.SetPose(_stage?.IsReady == true ? _stage.IdlePose : -1,
             _stage?.IsReady == true && !_requesting && _runner?.IsRunning != true);
         _ui?.SetCoordinate(_stage?.IsReady == true ? _stage.Coordinate : -1,
@@ -250,7 +267,7 @@ public sealed class AiChatBehaviour : MonoBehaviour
             running = _runner?.IsRunning == true, historyCount = _history.Count,
             stage = _stage?.Diagnostics(), expression = _adapter?.ExpressionDiagnostics(),
             outfit = _adapter?.OutfitDiagnostics(), titleEntry = _titleEntry?.Visible,
-            optionsBusy = OptionsBusy, nativeWindowVisible = _stage?.NativeWindowVisible, graphics = Graphics.Diagnostics() };
+            optionsBusy = OptionsBusy, h = new { status = _h?.Status, error = _h?.Error, active = _h?.Active }, nativeWindowVisible = _stage?.NativeWindowVisible, graphics = Graphics.Diagnostics() };
 
     private void SetVisible(bool visible)
     {
@@ -841,6 +858,7 @@ public sealed class AiChatBehaviour : MonoBehaviour
         if (_character == null || _runner == null || _requesting || _bridgeRestarting || _runner.IsRunning || _stage?.IsReady != true) return;
         if (string.IsNullOrWhiteSpace(text)) return;
         _ui.ClearInput();
+        _hInvite = null;
         Append(L.T($"あなた: {text}", $"You: {text}"));
         LogDialogue("user", text, "input");
         RequestReply(text, greeting: false);
@@ -913,6 +931,10 @@ public sealed class AiChatBehaviour : MonoBehaviour
                             LogSource?.LogInfo($"LLM outfit action had no applicable parts: {outfitCommand.Value}");
                         }
                     }
+                    // An invitation to H only offers the button; the player decides whether to go.
+                    _hInvite = commands.LastOrDefault(command => command.Type == "h_invite")?.Value;
+                    commands.RemoveAll(command => command.Type == "h_invite");
+                    if (_hInvite != null) LogSource?.LogInfo($"LLM invited to H: {_hInvite}");
                     // The greeting instruction is not something the player said, so it stays out of history.
                     if (!greeting) _history.Add(new HistoryItem("user", text));
                     var reply = string.Join(" ", commands.Where(c => c.Type == "text").Select(c => c.Value));
@@ -957,6 +979,7 @@ public sealed class AiChatBehaviour : MonoBehaviour
         _runner?.Cancel();
         _requesting = false;
         _greetingInFlight = false;
+        _hInvite = null;
         _status = "cancelled";
     }
 
@@ -1053,8 +1076,46 @@ public sealed class AiChatBehaviour : MonoBehaviour
                 RunDemo();
                 break;
             case "cancel": Cancel(); break;
+            case "h_start":
+                // value: "[map][,place[,category[,lewd]]]", e.g. "0,Floor,Caress,false"; no map uses the H settings
+                var hArgs = (value ?? "").Split(',', StringSplitOptions.TrimEntries);
+                StartH(hArgs[0] == "" ? Settings.HMap.Value : int.Parse(hArgs[0]),
+                    hArgs.Length > 1 && hArgs[1] != "" ? Enum.Parse<AL.H.PlaceType>(hArgs[1], true) : AL.H.PlaceType.Floor,
+                    hArgs.Length > 2 && hArgs[2] != "" && hArgs[2] != "any" ? Enum.Parse<AL.H.Define.PostureCategory>(hArgs[2], true) : null,
+                    hArgs.Length > 3 && bool.Parse(hArgs[3]));
+                break;
             default: throw new ArgumentException("Unsupported diagnostic action");
         }
+    }
+
+    private void AcceptHInvite()
+    {
+        var lewd = _hInvite == "lewd";
+        _hInvite = null;
+        try { StartH(Settings.HMap.Value, AL.H.PlaceType.Floor, null, lewd); }
+        catch (Exception ex) { _status = L.T("Hシーンに移れませんでした", "Could not enter the H scene"); LogSource?.LogError(ex); }
+    }
+
+    // Hands the screen to the game's H scene with the current character; the chat returns when it ends.
+    private void StartH(int mapId, AL.H.PlaceType place, AL.H.Define.PostureCategory? category, bool lewd)
+    {
+        if (_requesting || _runner.IsRunning || _stage?.IsReady != true) throw new InvalidOperationException("Not ready");
+        var data = new Character.HumanData((byte)1);
+        var card = _stage.ActiveCardPath;
+        if (card == null ? !data.LoadFromPreset(1) : !data.LoadCharaFile(card))
+            throw new InvalidDataException("The character could not be loaded for H.");
+        _h.MaleCard = Settings.HMaleCard.Value;
+        _stage.Suspend();
+        try
+        {
+            _h.Start(data, mapId, place, category, lewd, () =>
+            {
+                _stage?.Resume();
+                _status = _h.Error == null ? "ready / dedicated stage" : L.T("Hシーンに移れませんでした", "Could not enter the H scene");
+            });
+        }
+        catch { _stage.Resume(); throw; }
+        _status = "H scene";
     }
 
     private void Append(string line)

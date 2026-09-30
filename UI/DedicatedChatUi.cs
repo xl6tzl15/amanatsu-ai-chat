@@ -95,6 +95,12 @@ internal sealed class DedicatedChatUi : IDisposable
     }
     private readonly TMP_InputField _apiKeyInput;
     private GameObject _advancedOverlay;
+    private GameObject _hOverlay;
+    private Button _hInvite;
+    private TMP_Text _hMaleLabel;
+    private TMP_Text _hMapLabel;
+    private Func<string> _hMaleText;
+    private Func<string> _hMapText;
     private TMP_InputField _maxReplyInput;
     private TMP_InputField _contextInput;
     private TMP_InputField _historyInput;
@@ -289,7 +295,14 @@ internal sealed class DedicatedChatUi : IDisposable
         _settingsOverlay.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.72f);
         var settingsPanel = MakeRect("BackendSettings", settingsOverlay, new Vector2(420, -105), new Vector2(760, 690));
         settingsPanel.gameObject.AddComponent<Image>().color = new Color(0.07f, 0.09f, 0.14f, 0.98f);
-        MakeText("SettingsTitle", settingsPanel, L.T("LLM接続設定", "LLM connection"), 22, new Vector2(22, -18), new Vector2(560, 32));
+        MakeText("SettingsTitle", settingsPanel, L.T("LLM接続設定", "LLM connection"), 22, new Vector2(22, -18), new Vector2(400, 32));
+        MakeButton(settingsPanel, L.T("H設定…", "H scene…"), new Vector2(434, -16), new Vector2(148, 36), () =>
+        {
+            if (_hOverlay == null) return;
+            RefreshHSettings();
+            _hOverlay.transform.SetAsLastSibling();
+            _hOverlay.SetActive(true);
+        });
         MakeButton(settingsPanel, L.T("詳細設定…", "Advanced…"), new Vector2(590, -16), new Vector2(148, 36), () =>
         {
             _advancedOverlay.transform.SetAsLastSibling();
@@ -363,6 +376,48 @@ internal sealed class DedicatedChatUi : IDisposable
         _advancedOverlay.SetActive(false);
         _settingsOverlay.SetActive(false);
 
+    }
+
+    // The H scene's male character and map, chosen here and kept in the cfg.
+    public void AddHSettings(Func<string> maleText, Action chooseMale, Action defaultMale,
+        Func<string> mapText, Action<int> cycleMap)
+    {
+        _hMaleText = maleText;
+        _hMapText = mapText;
+        var overlay = _settingsOverlay.transform;
+        var panel = MakeRect("HSceneSettings", overlay, new Vector2(520, -215), new Vector2(560, 330));
+        panel.gameObject.AddComponent<Image>().color = new Color(0.09f, 0.11f, 0.17f, 1f);
+        _hOverlay = panel.gameObject;
+        MakeText("HTitle", panel, L.T("Hシーン設定", "H scene"), 22, new Vector2(22, -18), new Vector2(400, 32));
+        MakeText("HMaleTitle", panel, L.T("男性キャラカード", "Male character card"), 16, new Vector2(22, -66), new Vector2(516, 25));
+        _hMaleLabel = MakeText("HMale", panel, "", 16, new Vector2(22, -94), new Vector2(516, 25));
+        MakeButton(panel, L.T("ファイルから選択…", "Open card…"), new Vector2(22, -124), new Vector2(200, 36), () => { chooseMale(); RefreshHSettings(); });
+        MakeButton(panel, L.T("既定の男性", "Default male"), new Vector2(230, -124), new Vector2(160, 36), () => { defaultMale(); RefreshHSettings(); });
+        MakeText("HMapTitle", panel, L.T("マップ", "Map"), 16, new Vector2(22, -182), new Vector2(516, 25));
+        MakeButton(panel, "◀", new Vector2(22, -212), new Vector2(40, 36), () => { cycleMap(-1); RefreshHSettings(); });
+        _hMapLabel = MakeText("HMap", panel, "", 18, new Vector2(70, -218), new Vector2(250, 30), TextAlignmentOptions.Top);
+        MakeButton(panel, "▶", new Vector2(328, -212), new Vector2(40, 36), () => { cycleMap(1); RefreshHSettings(); });
+        MakeButton(panel, L.T("閉じる", "Close"), new Vector2(410, -272), new Vector2(128, 40), () => _hOverlay.SetActive(false));
+        _hOverlay.SetActive(false);
+    }
+
+    // Shown when the character invites or accepts sex; the player decides whether to go to the H scene.
+    public void AddHInvite(Action accept)
+    {
+        _hInvite = MakeButton(_root.GetComponent<RectTransform>(), L.T("Hに進む", "Go to H"), new Vector2(1290, -850), new Vector2(150, 42), accept);
+        _hInvite.name = "HInvite";
+        _hInvite.gameObject.SetActive(false);
+    }
+
+    public void SetHInvite(bool visible)
+    {
+        if (_hInvite != null && _hInvite.gameObject.activeSelf != visible) _hInvite.gameObject.SetActive(visible);
+    }
+
+    private void RefreshHSettings()
+    {
+        if (_hMaleLabel != null) _hMaleLabel.text = _hMaleText?.Invoke() ?? "";
+        if (_hMapLabel != null) _hMapLabel.text = _hMapText?.Invoke() ?? "";
     }
 
     public string InputText => _input?.text ?? "";

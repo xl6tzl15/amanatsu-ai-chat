@@ -281,5 +281,31 @@ class RetryTests(unittest.TestCase):
         self.assertFalse(sent[0]["think"])
         self.assertIn("m", b.thinking_models)
 
+class HInviteTests(unittest.TestCase):
+    def complete(self, **fields):
+        content = {"expression": "none", "motion": "none", "outfit": "none", "dialogue": "いいよ"}
+        content.update(fields)
+        m = MagicMock(); m.__enter__.return_value.read.return_value = json.dumps({"message": {"content": json.dumps(content)}}).encode()
+        with patch("urllib.request.urlopen", return_value=m):
+            b = bridge.Bridge(False, {"provider": "ollama", "url": "http://x/api/chat", "model": "m"})
+            return [c for c in b.complete({"user_text": "test"})["sequence"] if c["type"] == "h_invite"]
+
+    def test_only_sex_now_offers_the_button(self):
+        self.assertEqual(self.complete(sex_timing="now", arousal="calm"), [{"type": "h_invite", "value": "normal"}])
+        self.assertEqual(self.complete(sex_timing="now", arousal="aroused"), [{"type": "h_invite", "value": "lewd"}])
+        self.assertEqual(self.complete(sex_timing="later", arousal="aroused"), [])
+        self.assertEqual(self.complete(sex_timing="none"), [])
+        self.assertEqual(self.complete(), [])
+
+    def test_h_fields_are_judged_after_dialogue(self):
+        order = list(bridge.sequence_schema({})["properties"])
+        self.assertLess(order.index("dialogue"), order.index("sex_timing"))
+        self.assertLess(order.index("sex_timing"), order.index("arousal"))
+
+    def test_mock_invitation(self):
+        sequence = bridge.Bridge(True).complete({"user_text": "mock_h lewd"})["sequence"]
+        self.assertIn({"type": "h_invite", "value": "lewd"}, sequence)
+
+
 if __name__ == "__main__":
     unittest.main()
