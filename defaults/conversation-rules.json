@@ -1,0 +1,24 @@
+{
+  "Version": 1,
+  "GreetingInstruction": "（会話が始まりました。あなたから相手に、キャラクターらしい自然な最初のひと言を一つだけ話しかけてください。候補を並べたり、かぎかっこで区切ったりしないでください。）",
+  "OutfitUnavailableLine": "今の衣装では、変えられる部分がなかったよ。",
+  "DialogueStyle": "Write dialogue in Japanese in 1-2 short sentences.",
+  "DialogueMaxLength": 300,
+  "OutfitVocabulary": "wear_all=服を全部着る, remove_all=全部脱ぐ/全裸, half_off_all=半脱ぎ, show_bra=ブラ見せ(上着だけ脱ぐ), show_panties=パンツ見せ, underwear_only=下着姿, topless=上半身裸(上着とブラを脱ぐ), bottomless=下半身裸. Parts: top=トップス/上/上着/シャツ, bottom=ボトムス/下/スカート/ズボン, bra=ブラ, shorts=ショーツ/パンツ, gloves=手袋, pantyhose=パンスト, socks=靴下, shoes=靴. Layering: top and bottom are outer garments; bra and shorts are the underwear or swimsuit beneath them (names in parentheses tell what each part actually is). Parts that are not listed are not worn, so values for them change nothing. 水着/ビキニ/下着を脱いで means removing the parts whose names are that garment (usually bra and shorts, e.g. remove_all or topless/bottomless). When the talk is about nipples or breasts, 見せて means topless. お尻/お尻の穴/アソコ/股/下半身/下を見せて or 下を脱いで means bottomless (or remove_shorts if bottomless is not offered). パンツ見せて only means showing the panties. Removing values never put back on what is already off. Pick a value that actually moves the current clothes toward the request. Typical requests: 服を脱いで/脱いで -> remove_all; 上/上着を脱いで -> remove_top; 胸/おっぱいを出して・見せて -> topless; ブラを見せて/ブラだけにして -> show_bra; パンツ見せて -> show_panties; 下着姿になって -> underwear_only; 服を着て/着て -> wear_all. Requests to show or expose something (〜見せて, 〜出して, 〜だけにして) are take_off.",
+  "SexTimingRule": "sex_timing: now only when the two are about to have sex right here, right now, and the character agrees or invites it herself; later when she agrees to it for another time or place (tonight, after this, in her room, next time); none when sex is not what is being agreed (flirting, praise, a kiss only, refusing, changing the subject).",
+  "ArousalRule": "arousal: calm by default. Simply agreeing, even gladly, is calm, and so is being surprised or shy. aroused only when her own lust shows: she begs for it, says she cannot hold back any longer, or she is the one pushing for it.",
+  "PoseDescriptions": {
+    "pose_wave": "片手を軽く上げて気さくに立つ",
+    "pose_hand_chest": "片手を胸元に添えて控えめに立つ",
+    "pose_hands_hips": "両手を腰に当てて堂々と立つ",
+    "pose_hand_hip": "片手を腰に当てて気楽に立つ",
+    "pose_arms_front": "両手を体の前で重ねてもじもじ立つ",
+    "pose_open_arms": "両腕を少し広げて明るく立つ",
+    "pose_relaxed": "片手を腰に添え、もう片手を下ろして自然体",
+    "pose_arms_crossed": "腕を組んで立つ",
+    "pose_shy": "片腕を抱えて恥ずかしそうに立つ",
+    "pose_hands_belly": "両手をお腹の前で組んで上品に立つ",
+    "pose_finger_lips": "指を口元に当てて考え込む・甘える",
+    "pose_neutral": "両手を下ろしてまっすぐ立つ"
+  }
+}

@@ -10,6 +10,8 @@ public sealed class CharacterConfig
     public Dictionary<string, ExpressionPreset> Expressions { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     public Dictionary<string, int> Motions { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     public Dictionary<string, string> MotionDescriptions { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    // Line spoken when a clothing request changes nothing; null uses the shared line in conversation-rules.json.
+    public string OutfitUnavailableLine { get; set; }
     // Idle standing pose (Pose_D_XX); -1 keeps the card personality's own pose.
     public int IdlePose { get; set; } = -1;
 

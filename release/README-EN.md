@@ -1,6 +1,6 @@
 # Amanatsu AI Chat — User Manual (English edition)
 
-For Amanatsu AI Chat 0.8.1. This is an unofficial mod for *Amanatsu Location* (甘夏ろけーしょん). The normal game still starts from the title screen as usual; the chat screen opens from the "Amanatsu AI Chat v0.8.1" button on the title screen.
+For Amanatsu AI Chat 0.8.2. This is an unofficial mod for *Amanatsu Location* (甘夏ろけーしょん). The normal game still starts from the title screen as usual; the chat screen opens from the "Amanatsu AI Chat v0.8.2" button on the title screen.
 
 This file is for players. Implementation, testing and AI-agent notes are in the accompanying `README-AI.md`.
 
@@ -34,20 +34,20 @@ Example model download sizes. A model larger than your GPU memory runs partly on
 The examples below assume the game is at `C:\ILLGAMES\AmanatsuLocation`. Replace the path if yours is different.
 
 1. Close the game. A running game locks the DLL.
-2. Extract the ZIP and open the `AmanatsuAiChat-EN-0.8.1` folder.
+2. Extract the ZIP and open the `AmanatsuAiChat-EN-0.8.2` folder.
 3. Open PowerShell in that folder and run `python -m pip install -r .\BepInEx\plugins\AmanatsuAiChat\requirements.txt`.
 4. In the same place, run `./install.ps1 -GameRoot 'C:\ILLGAMES\AmanatsuLocation'`.
    - If an earlier version is in a folder under `BepInEx/plugins` (for example `plugins/SELF`), that copy is updated. Otherwise the mod goes into `BepInEx/plugins`.
    - Replaced files are backed up to `BepInEx/config/amanatsu.ai-chat/backups` in the game folder. Settings, cards and saves are not overwritten.
    - If `Amanatsu.AiChat.dll` exists in more than one place, it would load twice, so the installer stops and lists the locations. Keep only one and run it again.
 5. If you use Ollama, start it and download a model, for the default model: `ollama pull gemma4:e4b`. Models are large, so check your free space and allow time.
-6. Start the game. If "Amanatsu AI Chat v0.8.1" appears on the title screen, the mod is loaded.
+6. Start the game. If "Amanatsu AI Chat v0.8.2" appears on the title screen, the mod is loaded.
 
 If PowerShell refuses to run `install.ps1` because of the execution policy, read the error and allow it temporarily for trusted files only. You do not need to lower your security settings permanently.
 
 ## 3. Your first conversation
 
-1. Click "Amanatsu AI Chat v0.8.1" on the title screen. The first time, a dialog asks for a character card; choose the PNG card to talk with. Cancel leaves you on the title screen. The card is remembered and opens automatically next time.
+1. Click "Amanatsu AI Chat v0.8.2" on the title screen. The first time, a dialog asks for a character card; choose the PNG card to talk with. Cancel leaves you on the title screen. The card is remembered and opens automatically next time.
 2. When the character and the pink dialogue box appear, open "Connection" on the left panel.
 3. Check the provider and the LLM API URL, then use "Choose…" next to the model name to pick an installed model. Press "Save & apply". With a local Ollama you normally do not need an API key.
 4. Press "Restart bridge" twice within 10 seconds and wait for "Restarted". This restarts only this mod's local bridge; if it is not running yet, it simply starts.
@@ -61,7 +61,7 @@ Reply speed depends heavily on the model size and your PC. Without a GPU, a repl
 
 | Control | What it does |
 | --- | --- |
-| "Amanatsu AI Chat v0.8.1" on the title screen | Opens the chat screen. The game's own start button stays available. |
+| "Amanatsu AI Chat v0.8.2" on the title screen | Opens the chat screen. The game's own start button stays available. |
 | "Prev char" / "Next char" | Cycles through the cards in `UserData/chara/female`. |
 | "Open card…" | Picks a PNG card with the Windows file dialog. |
 | "◀ Pose ▶" next to the name | Switches the idle standing pose (Pose 01-12). The choice is saved per character and she returns to it after motions. |
@@ -128,6 +128,25 @@ The conversation is remembered only while the game is running. If you close the 
 ## 5. Personality, expressions and connection
 
 "Personality…" edits how the character talks, her personality and how she treats you. "Apply to card" saves it to the mod's own settings for that card; the card PNG itself is never modified. "Save as…" saves just the personality to a separate file, and "Open file…" loads one; after loading, press "Apply to card". Output format and motion control cannot be changed here.
+
+Below it, "Line when a clothing request changes nothing" is what the character says when she agrees to a clothing request but nothing on her can change. Leave it empty to use the shared line in the conversation rules file below. Opening a personality file without its own line leaves this field as it is. "Apply to card" saves it for the card, and "Save as…" saves it in the file together with the personality.
+
+### Conversation rules file
+
+The wording that steers the conversation is in `BepInEx/config/amanatsu.ai-chat/conversation-rules-en.json` (`conversation-rules.json` in the Japanese edition). It is created the first time you open the chat screen. Edit it in a text editor and save; the change applies from your next message. An empty entry goes back to the original wording.
+
+| Entry | What it is |
+| --- | --- |
+| `GreetingInstruction` | The instruction that makes the character say the first line when the chat opens or the character changes. |
+| `OutfitUnavailableLine` | The shared line when she agrees to a clothing request but nothing can change. |
+| `DialogueStyle` | The language and length of her lines (by default "1-2 short sentences"). |
+| `DialogueMaxLength` | The longest line in characters (300 by default). Raising it also raises the reply token limit so the line fits. |
+| `OutfitVocabulary` | How clothing requests are worded and which states and parts they mean. |
+| `SexTimingRule` | When the "Go to H" button appears. |
+| `ArousalRule` | When the H scene starts in the aroused state. |
+| `PoseDescriptions` | What the AI is told about each of the 12 standing poses. |
+
+The JSON format of the replies and the order of its fields, the rule that the personality field cannot change these rules, and the rule that the player decides with the button whether to go to H cannot be changed in this file. If one entry has a wrong value, only that entry uses the original wording and a warning is logged. A pose name in `PoseDescriptions` that is not one of the 12 poses is also logged as a warning. If the whole file cannot be read (a JSON syntax error, or a `Version` other than 1), a warning is logged and the chat keeps the rules it used last.
 
 The ZIP includes ten English personality presets: caretaker, tomboy, graceful, ojousama, diligent, gal, big sis, devoted, quiet and tsundere. The installer copies them to `BepInEx/config/amanatsu.ai-chat/personalities-en`; pick one with "Open file…" and press "Apply to card". Files with the same name are never overwritten. The English edition keeps its own folders, so Japanese presets never appear in the list.
 
@@ -212,4 +231,4 @@ The game log is `BepInEx/LogOutput.log`; logs of a bridge restarted from the scr
 
 To update, close the game and run `install.ps1` from the new package. To remove the mod, close the game and run `./uninstall.ps1 -GameRoot 'C:\ILLGAMES\AmanatsuLocation'` in the extracted folder. It moves only the mod's files to a recoverable backup and keeps settings, logs, cards and saves. Stop the bridge separately if it is still running.
 
-In 0.8.1, going from a conversation with a local model (gemma4-e4b family) through "Go to H" into the H scene and back to the chat was checked in both the Japanese and English editions, together with the male card setting (including the file dialog), the default male, entering and leaving the H scene on all nine maps, moving the camera in the H scene, the screen after closing the H scene's options window, and every position being available. The English edition shares the Japanese edition's code. The English screens, the opening line and a reply from a real model were checked in the game; Japanese conversation and a clothing request over the OpenAI API (GPT-6 luna) were also checked; the other features were tested in the game on the Japanese edition. Not every card, outfit, resolution or combination with other mods has been tested. After updating the game or BepInEx, check that everything still works.
+In 0.8.2, the conversation rules file was checked to be created with the original wording when the chat screen opens, and an edited opening instruction to apply from the next conversation. In 0.8.1, going from a conversation with a local model (gemma4-e4b family) through "Go to H" into the H scene and back to the chat was checked in both the Japanese and English editions, together with the male card setting (including the file dialog), the default male, entering and leaving the H scene on all nine maps, moving the camera in the H scene, the screen after closing the H scene's options window, and every position being available. The English edition shares the Japanese edition's code. The English screens, the opening line and a reply from a real model were checked in the game; Japanese conversation and a clothing request over the OpenAI API (GPT-6 luna) were also checked; the other features were tested in the game on the Japanese edition. Not every card, outfit, resolution or combination with other mods has been tested. After updating the game or BepInEx, check that everything still works.

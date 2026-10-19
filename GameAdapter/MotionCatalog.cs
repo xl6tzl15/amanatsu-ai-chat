@@ -26,25 +26,14 @@ internal static class MotionCatalog
     };
 
     // Standing idle poses (Pose_D_XX). The AI switches between them like a persistent motion.
-    public readonly record struct Pose(string Key, int Index, string Japanese, string English)
-    {
-        public string Description => L.T(Japanese, English);
-    }
+    // Their descriptions for the AI are in conversation-rules.json (PoseDescriptions).
+    public readonly record struct Pose(string Key, int Index);
 
     public static readonly Pose[] Poses =
     {
-        new("pose_wave", 0, "片手を軽く上げて気さくに立つ", "stands casually with one hand lightly raised"),
-        new("pose_hand_chest", 1, "片手を胸元に添えて控えめに立つ", "stands modestly with a hand on her chest"),
-        new("pose_hands_hips", 2, "両手を腰に当てて堂々と立つ", "stands proudly with both hands on her hips"),
-        new("pose_hand_hip", 3, "片手を腰に当てて気楽に立つ", "stands at ease with one hand on her hip"),
-        new("pose_arms_front", 4, "両手を体の前で重ねてもじもじ立つ", "fidgets with both hands clasped in front"),
-        new("pose_open_arms", 5, "両腕を少し広げて明るく立つ", "stands cheerfully with arms slightly open"),
-        new("pose_relaxed", 6, "片手を腰に添え、もう片手を下ろして自然体", "relaxed, one hand on her hip and the other down"),
-        new("pose_arms_crossed", 7, "腕を組んで立つ", "stands with her arms crossed"),
-        new("pose_shy", 8, "片腕を抱えて恥ずかしそうに立つ", "holds one arm and stands shyly"),
-        new("pose_hands_belly", 9, "両手をお腹の前で組んで上品に立つ", "stands gracefully with hands folded at her waist"),
-        new("pose_finger_lips", 10, "指を口元に当てて考え込む・甘える", "finger to her lips, thinking or being coy"),
-        new("pose_neutral", 11, "両手を下ろしてまっすぐ立つ", "stands straight with her arms down"),
+        new("pose_wave", 0), new("pose_hand_chest", 1), new("pose_hands_hips", 2), new("pose_hand_hip", 3),
+        new("pose_arms_front", 4), new("pose_open_arms", 5), new("pose_relaxed", 6), new("pose_arms_crossed", 7),
+        new("pose_shy", 8), new("pose_hands_belly", 9), new("pose_finger_lips", 10), new("pose_neutral", 11),
     };
 
     public static int? PoseIndex(string key)

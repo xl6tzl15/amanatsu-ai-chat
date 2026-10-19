@@ -21,6 +21,8 @@ internal sealed class DedicatedChatUi : IDisposable
     private readonly TMP_Text _selectedCard;
     private readonly GameObject _personalityOverlay;
     private readonly TMP_InputField _personalityInput;
+    private readonly TMP_InputField _outfitLineInput;
+    private string _savedOutfitLine = "";
     private readonly TMP_Text _personalityFeedback;
     private readonly GameObject _settingsOverlay;
     private readonly TMP_InputField _bridgeEndpointInput;
@@ -173,7 +175,7 @@ internal sealed class DedicatedChatUi : IDisposable
     }
     public void Suspend(bool suspended) { _root.SetActive(!suspended); }
 
-    public DedicatedChatUi(Action send, Action uiTest, Action performanceTest, Action cancel, Action close, Action previous, Action next, Action chooseCard, Func<string, bool> applyPersonality, Func<string> loadPersonality, Func<string, bool?> savePersonalityFile, Func<BackendSettings> loadBackendSettings, Action<BackendSettings> saveBackendSettings, Action testBackendConnection, Action restartBridge, Action left, Action right, Action near, Action far, Action<string, int> adjustFace, Action toggleEyeMode, Action toggleNeckMode, Action switchCoordinate, Action<int> cyclePose, ModSettings settings)
+    public DedicatedChatUi(Action send, Action uiTest, Action performanceTest, Action cancel, Action close, Action previous, Action next, Action chooseCard, Func<PersonalityText, bool> applyPersonality, Func<PersonalityText> loadPersonality, Func<PersonalityText, bool?> savePersonalityFile, Func<BackendSettings> loadBackendSettings, Action<BackendSettings> saveBackendSettings, Action testBackendConnection, Action restartBridge, Action left, Action right, Action near, Action far, Action<string, int> adjustFace, Action toggleEyeMode, Action toggleNeckMode, Action switchCoordinate, Action<int> cyclePose, ModSettings settings)
     {
         _settings = settings;
         _font = FindFont(settings.UiFontFile.Value);
@@ -254,35 +256,42 @@ internal sealed class DedicatedChatUi : IDisposable
         MakeText("PersonalityTitle", editor, L.T("性格・口調の指示", "Personality and speaking style"), 22, new Vector2(20, -14), new Vector2(560, 32));
         MakeText("PersonalityHelp", editor, L.T("キャラの振る舞いだけを記述します。出力形式・動作ルールは編集対象外です。", "Describe only how the character behaves. Output format and action rules are not editable here."), 14,
             new Vector2(20, -50), new Vector2(560, 24));
-        _personalityInput = MakeInput(editor, new Vector2(20, -82), new Vector2(560, 350), L.T("性格、口調、相手への接し方など", "Personality, speaking style, how she treats you…"), 16);
+        _personalityInput = MakeInput(editor, new Vector2(20, -82), new Vector2(560, 296), L.T("性格、口調、相手への接し方など", "Personality, speaking style, how she treats you…"), 16);
         _personalityInput.lineType = TMP_InputField.LineType.MultiLineNewline;
         _personalityInput.characterLimit = 4000;
         _personalityInput.textComponent.alignment = TextAlignmentOptions.TopLeft;
+        MakeText("OutfitLineLabel", editor, L.T("着替えで何も変わらなかったときの台詞（空欄で共通の台詞）", "Line when a clothing request changes nothing (empty: the shared line)"), 14,
+            new Vector2(20, -384), new Vector2(560, 22));
+        _outfitLineInput = MakeInput(editor, new Vector2(20, -408), new Vector2(560, 32), L.T("例: 今の格好だと、それは無理みたい。", "e.g. I can't do that in what I'm wearing."), 15);
         MakeButton(editor, L.T("カードへ適用", "Apply to card"), new Vector2(20, -447), new Vector2(125, 34), () =>
         {
-            if (applyPersonality(_personalityInput.text))
+            if (applyPersonality(new PersonalityText(_personalityInput.text, _outfitLineInput.text)))
             {
                 _savedPersonalityPrompt = _personalityInput.text.Trim();
+                _savedOutfitLine = _outfitLineInput.text.Trim();
                 _personalityFeedback.text = L.T("カードに適用しました", "Applied to the card.");
             }
             else _personalityFeedback.text = L.T("適用できませんでした。入力とログを確認してください", "Could not apply. Check the text and the log.");
         });
         MakeButton(editor, L.T("ファイルを開く…", "Open file…"), new Vector2(151, -447), new Vector2(140, 34), () =>
         {
-            var prompt = loadPersonality();
-            if (prompt != null)
+            var loaded = loadPersonality();
+            if (loaded != null)
             {
-                if (prompt.Length == 0) _personalityFeedback.text = L.T("読み込めませんでした。ログを確認してください", "Could not load. Check the log.");
+                if (string.IsNullOrEmpty(loaded.Prompt)) _personalityFeedback.text = L.T("読み込めませんでした。ログを確認してください", "Could not load. Check the log.");
                 else
                 {
-                    _personalityInput.SetTextWithoutNotify(prompt);
+                    _personalityInput.SetTextWithoutNotify(loaded.Prompt);
+                    // A preset without its own line leaves the card's line in the field.
+                    if (!string.IsNullOrWhiteSpace(loaded.OutfitUnavailableLine))
+                        _outfitLineInput.SetTextWithoutNotify(loaded.OutfitUnavailableLine);
                     _personalityFeedback.text = L.T("読み込みました。『カードへ適用』で反映します", "Loaded. Press \"Apply to card\" to use it.");
                 }
             }
         });
         MakeButton(editor, L.T("別名で保存…", "Save as…"), new Vector2(297, -447), new Vector2(140, 34), () =>
         {
-            var saved = savePersonalityFile(_personalityInput.text);
+            var saved = savePersonalityFile(new PersonalityText(_personalityInput.text, _outfitLineInput.text));
             if (saved.HasValue)
                 _personalityFeedback.text = saved.Value ? L.T("性格ファイルに保存しました", "Saved the personality file.") : L.T("保存できませんでした。入力とログを確認してください", "Could not save. Check the text and the log.");
         });
@@ -423,7 +432,7 @@ internal sealed class DedicatedChatUi : IDisposable
     }
 
     public string InputText => _input?.text ?? "";
-    public bool InputFocused => _input?.isFocused == true || _personalityInput?.isFocused == true
+    public bool InputFocused => _input?.isFocused == true || _personalityInput?.isFocused == true || _outfitLineInput?.isFocused == true
         || _bridgeEndpointInput?.isFocused == true || _bridgeTokenInput?.isFocused == true
         || _upstreamUrlInput?.isFocused == true || _modelInput?.isFocused == true || _apiKeyInput?.isFocused == true
         || _maxReplyInput?.isFocused == true || _contextInput?.isFocused == true || _historyInput?.isFocused == true
@@ -441,10 +450,12 @@ internal sealed class DedicatedChatUi : IDisposable
         _selectedCard.text = string.IsNullOrWhiteSpace(path) ? L.T("カード: 未選択", "Card: none") : L.T($"カード: {Path.GetFileName(path)}", $"Card: {Path.GetFileName(path)}");
     }
 
-    public void SetPersonalityPrompt(string prompt)
+    public void SetPersonalityPrompt(string prompt, string outfitUnavailableLine)
     {
         _savedPersonalityPrompt = prompt ?? "";
+        _savedOutfitLine = outfitUnavailableLine ?? "";
         _personalityInput.SetTextWithoutNotify(_savedPersonalityPrompt);
+        _outfitLineInput.SetTextWithoutNotify(_savedOutfitLine);
     }
 
     public void ClosePersonalityEditor() => _personalityOverlay.SetActive(false);
@@ -648,6 +659,7 @@ internal sealed class DedicatedChatUi : IDisposable
     private void OpenPersonalityEditor()
     {
         _personalityInput.SetTextWithoutNotify(_savedPersonalityPrompt);
+        _outfitLineInput.SetTextWithoutNotify(_savedOutfitLine);
         _personalityFeedback.text = "";
         _personalityOverlay.SetActive(true);
         _personalityInput.ActivateInputField();

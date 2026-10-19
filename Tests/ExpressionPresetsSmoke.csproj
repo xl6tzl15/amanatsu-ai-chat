@@ -13,5 +13,8 @@
     <Compile Include="..\Config\GlobalExpressionPresets.cs" Link="GlobalExpressionPresets.cs" />
     <Compile Include="..\GameAdapter\ExpressionCatalog.cs" Link="ExpressionCatalog.cs" />
     <Compile Include="..\GameAdapter\MotionCatalog.cs" Link="MotionCatalog.cs" />
+    <Compile Include="..\Config\ConversationRules.cs" Link="ConversationRules.cs" />
+    <EmbeddedResource Include="..\defaults\conversation-rules.json" LogicalName="conversation-rules.json" />
+    <EmbeddedResource Include="..\defaults\conversation-rules-en.json" LogicalName="conversation-rules-en.json" />
   </ItemGroup>
 </Project>

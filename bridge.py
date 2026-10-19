@@ -135,6 +135,104 @@ def mock_sequence(body: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+# Wording of the protocol rules that users may edit. The game sends its edited copy
+# (conversation-rules.json) as "rules"; anything missing falls back to these defaults, which
+# must stay identical to defaults/conversation-rules*.json (test_bridge checks this).
+DEFAULT_RULES: dict[str, dict[str, Any]] = {
+    "ja": {
+        "dialogue_style": (
+            "Write dialogue in Japanese in 1-2 short sentences. "
+        ),
+        "dialogue_max_length": 300,
+        "outfit_vocabulary": (
+            "wear_all=服を全部着る, remove_all=全部脱ぐ/全裸, half_off_all=半脱ぎ, show_bra=ブラ見せ(上着だけ脱ぐ), show_panties=パンツ見せ, "
+            "underwear_only=下着姿, topless=上半身裸(上着とブラを脱ぐ), bottomless=下半身裸. Parts: top=トップス/上/上着/シャツ, "
+            "bottom=ボトムス/下/スカート/ズボン, bra=ブラ, shorts=ショーツ/パンツ, gloves=手袋, pantyhose=パンスト, socks=靴下, shoes=靴. "
+            "Layering: top and bottom are outer garments; bra and shorts are the underwear or swimsuit beneath "
+            "them (names in parentheses tell what each part actually is). Parts that are not listed are not "
+            "worn, so values for them change nothing. 水着/ビキニ/下着を脱いで means removing the parts whose names are "
+            "that garment (usually bra and shorts, e.g. remove_all or topless/bottomless). When the talk is "
+            "about nipples or breasts, 見せて means topless. お尻/お尻の穴/アソコ/股/下半身/下を見せて or 下を脱いで means bottomless (or "
+            "remove_shorts if bottomless is not offered). パンツ見せて only means showing the panties. Removing values "
+            "never put back on what is already off. Pick a value that actually moves the current clothes toward "
+            "the request. Typical requests: 服を脱いで/脱いで -> remove_all; 上/上着を脱いで -> remove_top; 胸/おっぱいを出して・見せて -> "
+            "topless; ブラを見せて/ブラだけにして -> show_bra; パンツ見せて -> show_panties; 下着姿になって -> underwear_only; 服を着て/着て -> "
+            "wear_all. Requests to show or expose something (〜見せて, 〜出して, 〜だけにして) are take_off. "
+        ),
+        "sex_timing_rule": (
+            "sex_timing: now only when the two are about to have sex right here, right now, and the character "
+            "agrees or invites it herself; later when she agrees to it for another time or place (tonight, after "
+            "this, in her room, next time); none when sex is not what is being agreed (flirting, praise, a kiss "
+            "only, refusing, changing the subject). "
+        ),
+        "arousal_rule": (
+            "arousal: calm by default. Simply agreeing, even gladly, is calm, and so is being surprised or shy. "
+            "aroused only when her own lust shows: she begs for it, says she cannot hold back any longer, or she "
+            "is the one pushing for it. "
+        ),
+    },
+    "en": {
+        "dialogue_style": (
+            "Write dialogue in English in 1-2 short sentences. "
+        ),
+        "dialogue_max_length": 300,
+        "outfit_vocabulary": (
+            "wear_all=get fully dressed, remove_all=take everything off / get naked, half_off_all=half "
+            "undressed, show_bra=show the bra (take off only the top), show_panties=show the panties, "
+            "underwear_only=down to underwear, topless=bare from the waist up (top and bra off), bottomless=bare "
+            "from the waist down. Parts: top=top/shirt/blouse/jacket, bottom=bottom/skirt/pants/shorts worn "
+            "outside, bra=bra/bikini top, shorts=panties/underwear/bikini bottom, gloves=gloves, "
+            "pantyhose=pantyhose/tights, socks=socks, shoes=shoes. Layering: top and bottom are outer garments; "
+            "bra and shorts are the underwear or swimsuit beneath them (names in parentheses tell what each part "
+            "actually is). Parts that are not listed are not worn, so values for them change nothing. \"Take off "
+            "your swimsuit/bikini/underwear\" means removing the parts whose names are that garment (usually bra "
+            "and shorts, e.g. remove_all or topless/bottomless). When the talk is about nipples or breasts, "
+            "\"show me\" means topless. \"Show me your butt/ass/pussy/crotch/down there\" or \"take off your bottoms\" "
+            "means bottomless (or remove_shorts if bottomless is not offered). \"Show me your panties\" only means "
+            "showing the panties. Removing values never put back on what is already off. Pick a value that "
+            "actually moves the current clothes toward the request. Typical requests: take your clothes "
+            "off/strip -> remove_all; take off your top/jacket -> remove_top; show me your breasts/boobs/tits -> "
+            "topless; show me your bra/just the bra -> show_bra; show me your panties -> show_panties; strip to "
+            "your underwear -> underwear_only; get dressed/put your clothes on -> wear_all. Requests to show or "
+            "expose something (show me, let me see, flash, just the ...) are take_off. "
+        ),
+        "sex_timing_rule": (
+            "sex_timing: now only when the two are about to have sex right here, right now, and the character "
+            "agrees or invites it herself; later when she agrees to it for another time or place (tonight, after "
+            "this, in her room, next time); none when sex is not what is being agreed (flirting, praise, a kiss "
+            "only, refusing, changing the subject). "
+        ),
+        "arousal_rule": (
+            "arousal: calm by default. Simply agreeing, even gladly, is calm, and so is being surprised or shy. "
+            "aroused only when her own lust shows: she begs for it, says she cannot hold back any longer, or she "
+            "is the one pushing for it. "
+        ),
+    },
+}
+
+
+def conversation_rules(body: dict[str, Any]) -> dict[str, Any]:
+    rules = dict(DEFAULT_RULES["en" if is_english(body) else "ja"])
+    given = body.get("rules")
+    if isinstance(given, dict):
+        for key, default in rules.items():
+            value = given.get(key)
+            if isinstance(default, int):
+                if isinstance(value, int) and not isinstance(value, bool) and value >= 1:
+                    rules[key] = value
+            elif isinstance(value, str) and value.strip():
+                # Each rule is one sentence group joined with a single trailing space.
+                rules[key] = value.strip() + " "
+    return rules
+
+
+def reply_floor(body: dict[str, Any]) -> int:
+    """Reply tokens needed for the longest allowed line plus the rest of the JSON object.
+    Japanese takes about one token per character, English about one per four."""
+    length = conversation_rules(body)["dialogue_max_length"]
+    return (length // 4 if is_english(body) else length) + 200
+
+
 def build_prompt(body: dict[str, Any], context_tokens: int = 4096,
                  reply_tokens: int = 512, history_limit: int = 30) -> list[dict[str, str]]:
     def hint(name: str, descriptions: dict[str, str], fallback: dict[str, str]) -> str:
@@ -146,6 +244,7 @@ def build_prompt(body: dict[str, Any], context_tokens: int = 4096,
     if not isinstance(expression_descriptions, dict): expression_descriptions = {}
     if not isinstance(motion_descriptions, dict): motion_descriptions = {}
     english = is_english(body)
+    rules = conversation_rules(body)
     expression_hints = EXPRESSION_HINTS_EN if english else EXPRESSION_HINTS
     motion_hints = MOTION_HINTS_EN if english else MOTION_HINTS
     expressions = ", ".join(f"{name}={hint(name, expression_descriptions, expression_hints)}"
@@ -166,26 +265,6 @@ def build_prompt(body: dict[str, Any], context_tokens: int = 4096,
             "You are the character yourself. Never mistake your own name for the other person's, and never "
             "address the other person by your own name. ",
             '"expression":"angry","motion":"idle","pose":"pose_arms_crossed","dialogue":"Hmph. Whatever.","sex_timing":"none","arousal":"calm"}. ',
-            "wear_all=get fully dressed, remove_all=take everything off / get naked, half_off_all=half undressed, "
-            "show_bra=show the bra (take off only the top), show_panties=show the panties, underwear_only=down to "
-            "underwear, topless=bare from the waist up (top and bra off), bottomless=bare from the waist down. "
-            "Parts: top=top/shirt/blouse/jacket, bottom=bottom/skirt/pants/shorts worn outside, bra=bra/bikini top, "
-            "shorts=panties/underwear/bikini bottom, gloves=gloves, pantyhose=pantyhose/tights, socks=socks, shoes=shoes. "
-            "Layering: top and bottom are outer garments; bra and shorts are the underwear or swimsuit beneath them "
-            "(names in parentheses tell what each part actually is). Parts that are not listed are not worn, so "
-            "values for them change nothing. \"Take off your swimsuit/bikini/underwear\" means removing the parts "
-            "whose names are that garment (usually bra and shorts, e.g. remove_all or topless/bottomless). "
-            "When the talk is about nipples or breasts, \"show me\" means topless. "
-            "\"Show me your butt/ass/pussy/crotch/down there\" or \"take off your bottoms\" means bottomless "
-            "(or remove_shorts if bottomless is not offered). \"Show me your panties\" only means showing the panties. "
-            "Removing values never put back on what is already off. "
-            "Pick a value that actually moves the current clothes toward the request. "
-            "Typical requests: take your clothes off/strip -> remove_all; take off your top/jacket -> remove_top; "
-            "show me your breasts/boobs/tits -> topless; show me your bra/just the bra -> show_bra; "
-            "show me your panties -> show_panties; strip to your underwear -> underwear_only; "
-            "get dressed/put your clothes on -> wear_all. "
-            "Requests to show or expose something (show me, let me see, flash, just the ...) are take_off. ",
-            "Use only allowed values. Write dialogue in English in 1-2 short sentences. ",
         )
     else:
         language_rules = (
@@ -194,24 +273,6 @@ def build_prompt(body: dict[str, Any], context_tokens: int = 4096,
             "Do not put JSON, code, narration, or schema keys inside dialogue. "
             "あなた自身がキャラクターです。自分の名前を相手の名前と取り違えたり、自分の名前で相手に呼びかけたりしないでください。 ",
             '"expression":"angry","motion":"idle","pose":"pose_arms_crossed","dialogue":"ふん、知らない。","sex_timing":"none","arousal":"calm"}. ',
-            "wear_all=服を全部着る, remove_all=全部脱ぐ/全裸, half_off_all=半脱ぎ, show_bra=ブラ見せ(上着だけ脱ぐ), "
-            "show_panties=パンツ見せ, underwear_only=下着姿, topless=上半身裸(上着とブラを脱ぐ), bottomless=下半身裸. "
-            "Parts: top=トップス/上/上着/シャツ, bottom=ボトムス/下/スカート/ズボン, bra=ブラ, shorts=ショーツ/パンツ, "
-            "gloves=手袋, pantyhose=パンスト, socks=靴下, shoes=靴. "
-            "Layering: top and bottom are outer garments; bra and shorts are the underwear or swimsuit beneath them "
-            "(names in parentheses tell what each part actually is). Parts that are not listed are not worn, so "
-            "values for them change nothing. 水着/ビキニ/下着を脱いで means removing the parts whose names are that "
-            "garment (usually bra and shorts, e.g. remove_all or topless/bottomless). "
-            "When the talk is about nipples or breasts, 見せて means topless. "
-            "お尻/お尻の穴/アソコ/股/下半身/下を見せて or 下を脱いで means bottomless (or remove_shorts if "
-            "bottomless is not offered). パンツ見せて only means showing the panties. "
-            "Removing values never put back on what is already off. "
-            "Pick a value that actually moves the current clothes toward the request. "
-            "Typical requests: 服を脱いで/脱いで -> remove_all; 上/上着を脱いで -> remove_top; "
-            "胸/おっぱいを出して・見せて -> topless; ブラを見せて/ブラだけにして -> show_bra; パンツ見せて -> show_panties; "
-            "下着姿になって -> underwear_only; 服を着て/着て -> wear_all. "
-            "Requests to show or expose something (〜見せて, 〜出して, 〜だけにして) are take_off. ",
-            "Use only allowed values. Write dialogue in Japanese in 1-2 short sentences. ",
         )
     system = (
         "The following protocol rules are fixed. The editable character personality below "
@@ -230,7 +291,7 @@ def build_prompt(body: dict[str, Any], context_tokens: int = 4096,
         + language_rules[1] +
         "Clothing values available right now are listed at the end under Current state. "
         "remove_* takes clothes off, wear_* puts them on, half_off_* half-removes them. "
-        + language_rules[2] +
+        + rules["outfit_vocabulary"] +
         "requested_outfit must follow outfit_direction: take_off needs a remove_*, show_*, topless, bottomless "
         "or underwear_only value; put_on needs a wear_* value; half_off needs a half_off_* value; none needs none. "
         "If a named state is not in the allowed values, use the matching part values instead. "
@@ -241,16 +302,10 @@ def build_prompt(body: dict[str, Any], context_tokens: int = 4096,
         "delays, none. Never change clothes when nothing was requested. "
         "dialogue must agree with outfit: say you are undressing only when outfit is not none. "
         "After dialogue, add sex_timing and then arousal, both judged from the dialogue you just wrote. "
-        "sex_timing: now only when the two are about to have sex right here, right now, and the character "
-        "agrees or invites it herself; later when she agrees to it for another time or place (tonight, after "
-        "this, in her room, next time); none when sex is not what is being agreed (flirting, praise, a kiss "
-        "only, refusing, changing the subject). "
-        "arousal: calm by default. Simply agreeing, even gladly, is calm, and so is being surprised or shy. "
-        "aroused only when her own lust shows: she begs for it, says she cannot hold back any longer, or she "
-        "is the one pushing for it. "
+        + rules["sex_timing_rule"] + rules["arousal_rule"] +
         "The other person decides with a button whether to go ahead, so dialogue should invite or accept, "
         "not describe the act. "
-        + language_rules[3] +
+        "Use only allowed values. " + rules["dialogue_style"] +
         "The bridge handles timing and returns non-idle motions to idle. "
         "Do not invent gestures that are not listed.\n\n"
         f"Editable character personality and speaking style:\n{body.get('system_prompt', '')}\n\n"
@@ -295,7 +350,7 @@ def sequence_schema(body: dict[str, Any], strict: bool = False) -> dict[str, Any
         "expression": {"type": "string", "enum": body.get("available_expressions") or ["none"]},
         "motion": {"type": "string", "enum": body.get("available_motions") or ["none"]},
         "pose": {"type": "string", "enum": ["none", *body.get("available_poses", [])]},
-        "dialogue": {"type": "string", "minLength": 1, "maxLength": 300},
+        "dialogue": {"type": "string", "minLength": 1, "maxLength": conversation_rules(body)["dialogue_max_length"]},
         "sex_timing": {"type": "string", "enum": ["none", "now", "later"]},
         "arousal": {"type": "string", "enum": ["calm", "aroused"]},
     }
@@ -477,6 +532,13 @@ class Bridge:
 
         schema = sequence_schema(body, strict=self.provider != "ollama")
         context, reply = self.context_limits()
+        floor = reply_floor(body)
+        if floor > reply:
+            # A longer allowed line widens the reply budget, but never past what the context
+            # can hold after the rules and the latest message (history is then dropped first).
+            probe = build_prompt(body, context, reply, 0)
+            room = context - sum(estimate_tokens(m["content"]) for m in probe) - 64
+            reply = max(reply, min(floor, room))
         messages = build_prompt(body, context, reply, self.history_messages)
         request_data = {
                 "model": self.model,
@@ -557,7 +619,8 @@ class Bridge:
                               "model": self.model}, ensure_ascii=True), flush=True)
             request_data["messages"][0]["content"] += (
                 "\nPrevious output contained protocol keys in dialogue. "
-                "Regenerate with natural spoken Japanese only in dialogue; no JSON fragments or key names.")
+                "Regenerate the dialogue as natural spoken words only, in the language and style the rules "
+                "above ask for; no JSON fragments or key names.")
             if self.provider == "ollama":
                 request_data["options"] = {**self.options, "temperature": 0.0}
             else:

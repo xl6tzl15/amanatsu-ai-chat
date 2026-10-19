@@ -36,7 +36,8 @@ public static class SequenceValidator
         SequenceEnvelope envelope,
         IReadOnlySet<string> expressions,
         IReadOnlySet<string> motions,
-        Action<string> warn)
+        Action<string> warn,
+        int maxTextLength = 1000)
     {
         var valid = new List<SequenceCommand>();
         if (envelope?.Commands == null)
@@ -103,9 +104,9 @@ public static class SequenceValidator
                 }
                 command.Value = index.ToString();
             }
-            else if (type == "text" && command.Value!.Length > 1000)
+            else if (type == "text" && command.Value!.Length > maxTextLength)
             {
-                command.Value = command.Value[..1000];
+                command.Value = command.Value[..maxTextLength];
             }
 
             command.Type = type;

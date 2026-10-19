@@ -1,0 +1,24 @@
+{
+  "Version": 1,
+  "GreetingInstruction": "(The conversation has just started. Say one natural opening line to the other person, in character. Do not list options or wrap the line in quotation marks.)",
+  "OutfitUnavailableLine": "There was nothing on me that could change like that.",
+  "DialogueStyle": "Write dialogue in English in 1-2 short sentences.",
+  "DialogueMaxLength": 300,
+  "OutfitVocabulary": "wear_all=get fully dressed, remove_all=take everything off / get naked, half_off_all=half undressed, show_bra=show the bra (take off only the top), show_panties=show the panties, underwear_only=down to underwear, topless=bare from the waist up (top and bra off), bottomless=bare from the waist down. Parts: top=top/shirt/blouse/jacket, bottom=bottom/skirt/pants/shorts worn outside, bra=bra/bikini top, shorts=panties/underwear/bikini bottom, gloves=gloves, pantyhose=pantyhose/tights, socks=socks, shoes=shoes. Layering: top and bottom are outer garments; bra and shorts are the underwear or swimsuit beneath them (names in parentheses tell what each part actually is). Parts that are not listed are not worn, so values for them change nothing. \"Take off your swimsuit/bikini/underwear\" means removing the parts whose names are that garment (usually bra and shorts, e.g. remove_all or topless/bottomless). When the talk is about nipples or breasts, \"show me\" means topless. \"Show me your butt/ass/pussy/crotch/down there\" or \"take off your bottoms\" means bottomless (or remove_shorts if bottomless is not offered). \"Show me your panties\" only means showing the panties. Removing values never put back on what is already off. Pick a value that actually moves the current clothes toward the request. Typical requests: take your clothes off/strip -> remove_all; take off your top/jacket -> remove_top; show me your breasts/boobs/tits -> topless; show me your bra/just the bra -> show_bra; show me your panties -> show_panties; strip to your underwear -> underwear_only; get dressed/put your clothes on -> wear_all. Requests to show or expose something (show me, let me see, flash, just the ...) are take_off.",
+  "SexTimingRule": "sex_timing: now only when the two are about to have sex right here, right now, and the character agrees or invites it herself; later when she agrees to it for another time or place (tonight, after this, in her room, next time); none when sex is not what is being agreed (flirting, praise, a kiss only, refusing, changing the subject).",
+  "ArousalRule": "arousal: calm by default. Simply agreeing, even gladly, is calm, and so is being surprised or shy. aroused only when her own lust shows: she begs for it, says she cannot hold back any longer, or she is the one pushing for it.",
+  "PoseDescriptions": {
+    "pose_wave": "stands casually with one hand lightly raised",
+    "pose_hand_chest": "stands modestly with a hand on her chest",
+    "pose_hands_hips": "stands proudly with both hands on her hips",
+    "pose_hand_hip": "stands at ease with one hand on her hip",
+    "pose_arms_front": "fidgets with both hands clasped in front",
+    "pose_open_arms": "stands cheerfully with arms slightly open",
+    "pose_relaxed": "relaxed, one hand on her hip and the other down",
+    "pose_arms_crossed": "stands with her arms crossed",
+    "pose_shy": "holds one arm and stands shyly",
+    "pose_hands_belly": "stands gracefully with hands folded at her waist",
+    "pose_finger_lips": "finger to her lips, thinking or being coy",
+    "pose_neutral": "stands straight with her arms down"
+  }
+}

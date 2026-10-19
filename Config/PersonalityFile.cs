@@ -2,6 +2,9 @@ using System.Text.Json;
 
 namespace Amanatsu.AiChat.Config;
 
+// The personality text and the line spoken when a clothing request changes nothing (null = the shared line).
+public sealed record PersonalityText(string Prompt, string OutfitUnavailableLine);
+
 // Portable personality-only preset. Character cards and motion/expression mappings are never written here.
 internal static class PersonalityFile
 {
@@ -10,17 +13,18 @@ internal static class PersonalityFile
         ? "BepInEx/config/amanatsu.ai-chat/personalities-en"
         : "BepInEx/config/amanatsu.ai-chat/personalities");
 
-    public static string Load(string path)
+    public static PersonalityText Load(string path)
     {
         RequireJsonPath(path);
         var preset = JsonSerializer.Deserialize<Preset>(File.ReadAllText(path), JsonOptions());
         if (preset?.Version != 1 || string.IsNullOrWhiteSpace(preset.PersonalityPrompt)
             || preset.PersonalityPrompt.Length > 4000)
             throw new InvalidDataException(L.T("性格ファイルの形式または文字数が正しくありません", "The personality file format or length is not valid"));
-        return preset.PersonalityPrompt;
+        return new PersonalityText(preset.PersonalityPrompt,
+            string.IsNullOrWhiteSpace(preset.OutfitUnavailableLine) ? null : preset.OutfitUnavailableLine.Trim());
     }
 
-    public static void Save(string path, string prompt)
+    public static void Save(string path, string prompt, string outfitUnavailableLine)
     {
         RequireJsonPath(path);
         if (string.IsNullOrWhiteSpace(prompt) || prompt.Length > 4000)
@@ -31,7 +35,8 @@ internal static class PersonalityFile
         File.WriteAllText(temporaryPath, JsonSerializer.Serialize(new Preset
         {
             Version = 1,
-            PersonalityPrompt = prompt.Trim()
+            PersonalityPrompt = prompt.Trim(),
+            OutfitUnavailableLine = string.IsNullOrWhiteSpace(outfitUnavailableLine) ? null : outfitUnavailableLine.Trim()
         }, JsonOptions()));
         File.Move(temporaryPath, path, true);
     }
@@ -45,12 +50,14 @@ internal static class PersonalityFile
     private static JsonSerializerOptions JsonOptions() => new()
     {
         PropertyNameCaseInsensitive = true,
-        WriteIndented = true
+        WriteIndented = true,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
     };
 
     private sealed class Preset
     {
         public int Version { get; set; }
         public string PersonalityPrompt { get; set; }
+        public string OutfitUnavailableLine { get; set; }
     }
 }

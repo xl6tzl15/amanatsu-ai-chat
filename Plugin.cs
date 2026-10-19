@@ -63,6 +63,7 @@ public sealed class Plugin : BasePlugin
             Application.SetStackTraceLogType(LogType.Error, StackTraceLogType.Full);
             Application.add_logMessageReceived((Action<string, string, LogType>)CaptureUnityError);
         }
+        ConversationRules.Log = (message, warning) => { if (warning) Log.LogWarning(message); else Log.LogInfo(message); };
         HarmonyLib.Harmony.CreateAndPatchAll(typeof(HPostureUnlock));
         AddComponent<AiChatBehaviour>();
         Log.LogInfo($"{ModIdentity.Label} loaded. Dedicated UI is available without entering the main game.");
@@ -111,9 +112,8 @@ public sealed class AiChatBehaviour : MonoBehaviour
     private int _requestGeneration;
     private bool _greetingPending;
     private bool _greetingInFlight;
-    private static string GreetingInstruction => L.T(
-        "（会話が始まりました。あなたから相手に、キャラクターらしい自然な最初のひと言を一つだけ話しかけてください。候補を並べたり、かぎかっこで区切ったりしないでください。）",
-        "(The conversation has just started. Say one natural opening line to the other person, in character. Do not list options or wrap the line in quotation marks.)");
+    // Edited in conversation-rules.json; read again when the file changes.
+    private static string GreetingInstruction => ConversationRules.Current.GreetingInstruction;
     private TitleEntryUi _titleEntry;
     private bool _optionsPending;
     private bool _optionsSeen;
@@ -614,8 +614,10 @@ public sealed class AiChatBehaviour : MonoBehaviour
         _adapter.SetFacePart(part, current + delta);
     }
 
-    private bool SavePersonalityPrompt(string prompt)
+    private bool SavePersonalityPrompt(PersonalityText text)
     {
+        if (text == null) return false;
+        var prompt = text.Prompt;
         if (_stage?.IsReady != true || _character == null || string.IsNullOrWhiteSpace(_stage.ActiveCardPath))
         {
             _status = L.T("キャラが選択されていません", "No character is selected");
@@ -629,10 +631,12 @@ public sealed class AiChatBehaviour : MonoBehaviour
         try
         {
             var previousPrompt = _character.SystemPrompt;
+            var previousLine = _character.OutfitUnavailableLine;
             _character.SystemPrompt = prompt.Trim();
+            _character.OutfitUnavailableLine = string.IsNullOrWhiteSpace(text.OutfitUnavailableLine) ? null : text.OutfitUnavailableLine.Trim();
             try { CharacterConfig.SaveForCard(Path.GetFullPath(CharacterConfigPath), _stage.ActiveCardPath, _character); }
-            catch { _character.SystemPrompt = previousPrompt; throw; }
-            _ui?.SetPersonalityPrompt(_character.SystemPrompt);
+            catch { _character.SystemPrompt = previousPrompt; _character.OutfitUnavailableLine = previousLine; throw; }
+            _ui?.SetPersonalityPrompt(_character.SystemPrompt, _character.OutfitUnavailableLine);
             _status = L.T("性格・口調の指示を保存しました（次の会話から反映）", "Saved the personality (used from the next message)");
             return true;
         }
@@ -725,27 +729,29 @@ public sealed class AiChatBehaviour : MonoBehaviour
         if (!_adapter.AdjustFaceValue(part, delta)) _status = L.T("開閉値を変更できませんでした", "Could not change the openness");
     }
 
-    private string LoadPersonalityFile()
+    private PersonalityText LoadPersonalityFile()
     {
         try
         {
             Directory.CreateDirectory(PersonalityFile.Directory);
             var path = NativeFilePicker.OpenPersonality(PersonalityFile.Directory);
             if (path == null) return null;
-            var prompt = PersonalityFile.Load(path);
+            var loaded = PersonalityFile.Load(path);
             _status = L.T($"性格ファイルを読み込みました: {Path.GetFileName(path)}", $"Loaded the personality file: {Path.GetFileName(path)}");
-            return prompt;
+            return loaded;
         }
         catch (Exception ex)
         {
             _status = L.T($"性格ファイル読込失敗: {ex.Message}", $"Could not load the personality file: {ex.Message}");
             LogSource?.LogError(ex);
-            return "";
+            return new PersonalityText("", null);
         }
     }
 
-    private bool? SavePersonalityFile(string prompt)
+    private bool? SavePersonalityFile(PersonalityText text)
     {
+        if (text == null) return false;
+        var prompt = text.Prompt;
         if (string.IsNullOrWhiteSpace(prompt) || prompt.Length > 4000)
         {
             _status = L.T("性格・口調の指示は1～4000文字で入力してください", "The personality text must be 1 to 4000 characters");
@@ -756,7 +762,7 @@ public sealed class AiChatBehaviour : MonoBehaviour
             Directory.CreateDirectory(PersonalityFile.Directory);
             var path = NativeFilePicker.SavePersonality(PersonalityFile.Directory);
             if (path == null) return null;
-            PersonalityFile.Save(path, prompt.Trim());
+            PersonalityFile.Save(path, prompt.Trim(), text.OutfitUnavailableLine);
             _status = L.T($"性格ファイルを保存しました: {Path.GetFileName(path)}", $"Saved the personality file: {Path.GetFileName(path)}");
             return true;
         }
@@ -788,7 +794,7 @@ public sealed class AiChatBehaviour : MonoBehaviour
         if (!string.IsNullOrWhiteSpace(_profileCardPath) && CardPathConfig != null)
             CharacterCardPath = CardPathConfig.Value = _profileCardPath;
         _ui?.SetSelectedCardPath(_profileCardPath);
-        _ui?.SetPersonalityPrompt(_character.SystemPrompt);
+        _ui?.SetPersonalityPrompt(_character.SystemPrompt, _character.OutfitUnavailableLine);
         _ui?.ClosePersonalityEditor();
         _stage.SetIdlePose(_character.IdlePose);
         LogSource?.LogInfo($"Character profile ready: id={_character.Id}, expressions={_character.Expressions.Count}, motions={_character.Motions.Count}");
@@ -902,11 +908,15 @@ public sealed class AiChatBehaviour : MonoBehaviour
             MotionDescriptions = _character.MotionDescriptions
         };
 
+        // One snapshot of the editable rules serves the whole turn (request, validation, fallback line).
+        var rules = ConversationRules.Current;
+        var outfitUnavailableLine = string.IsNullOrWhiteSpace(_character.OutfitUnavailableLine)
+            ? rules.OutfitUnavailableLine : _character.OutfitUnavailableLine;
         _ = Task.Run(async () =>
         {
             try
             {
-                var envelope = await _client.CompleteAsync(character, historySnapshot, text, outfitActions, currentOutfit, token);
+                var envelope = await _client.CompleteAsync(character, historySnapshot, text, outfitActions, currentOutfit, rules, token);
                 _mainThread.Enqueue(() =>
                 {
                     if (generation != _requestGeneration || token.IsCancellationRequested) return;
@@ -915,7 +925,7 @@ public sealed class AiChatBehaviour : MonoBehaviour
                     var commands = SequenceValidator.Validate(envelope,
                         character.Expressions.Keys.ToHashSet(StringComparer.OrdinalIgnoreCase),
                         character.Motions.Keys.ToHashSet(StringComparer.OrdinalIgnoreCase),
-                        warning => LogSource?.LogWarning(warning)).ToList();
+                        warning => LogSource?.LogWarning(warning), Math.Max(1000, rules.DialogueMaxLength)).ToList();
                     if (commands.Count == 0) throw new InvalidDataException("Bridge returned no valid commands.");
                     // Commit the single structured clothing action before speaking.
                     // Otherwise the generated dialogue could claim a change that the
@@ -930,7 +940,7 @@ public sealed class AiChatBehaviour : MonoBehaviour
                         if (!applied)
                         {
                             foreach (var command in commands.Where(command => command.Type == "text"))
-                                command.Value = L.T("今の衣装では、変えられる部分がなかったよ。", "There was nothing on me that could change like that.");
+                                command.Value = outfitUnavailableLine;
                             LogSource?.LogInfo($"LLM outfit action had no applicable parts: {outfitCommand.Value}");
                         }
                     }

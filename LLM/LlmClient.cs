@@ -24,6 +24,7 @@ internal sealed class LlmClient : IDisposable
         string userText,
         IReadOnlyList<string> availableOutfitActions,
         IReadOnlyDictionary<string, string> currentOutfit,
+        ConversationRules rules,
         CancellationToken cancellationToken)
     {
         var requestBody = new
@@ -40,7 +41,9 @@ internal sealed class LlmClient : IDisposable
             motion_descriptions = character.MotionDescriptions,
             language = L.Code,
             available_poses = GameAdapter.MotionCatalog.Poses.Select(p => p.Key).ToArray(),
-            pose_descriptions = GameAdapter.MotionCatalog.Poses.ToDictionary(p => p.Key, p => p.Description),
+            pose_descriptions = GameAdapter.MotionCatalog.Poses.ToDictionary(p => p.Key,
+                p => rules.PoseDescriptions.TryGetValue(p.Key, out var description) ? description : p.Key),
+            rules = rules.BridgeRules(),
             available_outfit_actions = availableOutfitActions,
             current_outfit = currentOutfit
         };

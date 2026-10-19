@@ -281,6 +281,71 @@ class RetryTests(unittest.TestCase):
         self.assertFalse(sent[0]["think"])
         self.assertIn("m", b.thinking_models)
 
+class ConversationRulesTests(unittest.TestCase):
+    ROOT = Path(__file__).resolve().parent
+    BODY = {"user_text": "脱いで", "system_prompt": "P", "available_expressions": ["smile"],
+            "available_motions": ["idle"], "available_poses": ["pose_wave"],
+            "available_outfit_actions": ["undress", "top:undress"], "current_outfit": {"top": "on(シャツ)"}}
+    FILES = {"ja": "conversation-rules.json", "en": "conversation-rules-en.json"}
+    KEYS = {"DialogueStyle": "dialogue_style", "DialogueMaxLength": "dialogue_max_length",
+            "OutfitVocabulary": "outfit_vocabulary", "SexTimingRule": "sex_timing_rule", "ArousalRule": "arousal_rule"}
+
+    def default_file(self, language):
+        return json.loads((self.ROOT / "defaults" / self.FILES[language]).read_text(encoding="utf-8"))
+
+    def as_sent(self, language):
+        data = self.default_file(language)
+        return {bridge_key: data[file_key] for file_key, bridge_key in self.KEYS.items()}
+
+    def test_default_files_match_the_bridge(self):
+        for language in ("ja", "en"):
+            sent = self.as_sent(language)
+            for key, value in bridge.DEFAULT_RULES[language].items():
+                self.assertEqual(sent[key], value if isinstance(value, int) else value.strip(), (language, key))
+
+    def test_unedited_rules_leave_the_prompt_unchanged(self):
+        for language in ("ja", "en"):
+            body = dict(self.BODY, language=language)
+            self.assertEqual(bridge.build_prompt(body), bridge.build_prompt(dict(body, rules=self.as_sent(language))))
+            self.assertEqual(bridge.sequence_schema(body), bridge.sequence_schema(dict(body, rules=self.as_sent(language))))
+
+    def test_edited_rules_are_used_before_the_current_state(self):
+        body = dict(self.BODY, rules={"dialogue_style": "3文で話す。", "dialogue_max_length": 600,
+                                      "sex_timing_rule": "sex_timing: 独自の基準。", "outfit_vocabulary": ""})
+        system = bridge.build_prompt(body)[0]["content"]
+        self.assertIn("Use only allowed values. 3文で話す。 ", system)
+        self.assertIn("sex_timing: 独自の基準。 arousal:", system)
+        self.assertIn("服を脱いで", system)  # an empty entry falls back to the default
+        self.assertLess(system.index("3文で話す"), system.index("Current state:"))
+        self.assertEqual(bridge.sequence_schema(body)["properties"]["dialogue"]["maxLength"], 600)
+
+    def test_reply_budget_fits_the_longest_allowed_line(self):
+        content = json.dumps({"expression": "none", "motion": "none", "outfit": "none", "dialogue": "やあ"})
+        sent = []
+        def fake(req, timeout):
+            sent.append(json.loads(req.data))
+            m = MagicMock(); m.__enter__.return_value.read.return_value = json.dumps({"message": {"content": content}}).encode()
+            return m
+        b = bridge.Bridge(False, {"provider": "ollama", "url": "http://x/api/chat", "model": "m",
+                                  "options": {"num_ctx": 4096, "num_predict": 512}})
+        with patch("urllib.request.urlopen", fake):
+            b.complete({"user_text": "やあ"})
+            b.complete({"user_text": "やあ", "rules": {"dialogue_max_length": 900}})
+            b.complete({"user_text": "やあ", "rules": {"dialogue_max_length": 100000}})
+        self.assertEqual(sent[0]["options"]["num_predict"], 512)   # the default line length fits as before
+        self.assertEqual(sent[1]["options"]["num_predict"], 1100)  # 900 characters plus the JSON around them
+        # A huge limit stops at what the 4096-token context leaves after the rules and the message.
+        self.assertGreater(sent[2]["options"]["num_predict"], 1100)
+        self.assertLess(sent[2]["options"]["num_predict"], 4096)
+
+    def test_default_pose_descriptions_cover_every_pose(self):
+        catalog = (self.ROOT / "GameAdapter" / "MotionCatalog.cs").read_text(encoding="utf-8")
+        poses = set(re.findall(r'new\("(pose_\w+)", \d+\)', catalog))
+        self.assertEqual(len(poses), 12)
+        for language in ("ja", "en"):
+            self.assertEqual(set(self.default_file(language)["PoseDescriptions"]), poses)
+
+
 class HInviteTests(unittest.TestCase):
     def complete(self, **fields):
         content = {"expression": "none", "motion": "none", "outfit": "none", "dialogue": "いいよ"}
